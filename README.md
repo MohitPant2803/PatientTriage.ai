@@ -81,13 +81,61 @@ Under standard hospital operations, triage is typically conducted as a **static,
 
 ---
 
-## 3. Technology Stack
+## 3. Clinical Severity Scoring & Dynamic Queue Prioritization Formulas
+
+To ensure that high-acuity life threats are never deprioritized and that queue ordering is mathematically transparent, **PatientTriage.ai** implements a multi-stage scoring architecture:
+
+### Step 1: Age-Calibrated Physiological Risk Score ($S_{\text{physio}} \in [0, 10]$)
+Every incoming vital sign is tested against cohort-specific normal bands:
+$$S_{\text{physio}} = \sum_{v \in \text{Vitals}} w_v \cdot \mathbb{I}\big(v \notin \text{NormalCohortRange}(\text{Age})\big)$$
+
+Where clinical parameter weights are assigned as:
+- $\text{SpO}_2$ Derangement ($w = 3$)
+- Heart Rate ($w = 2$)
+- Systolic / Diastolic Blood Pressure ($w = 2$)
+- Respiratory Rate ($w = 2$)
+- Core Body Temperature ($w = 1$)
+
+### Step 2: Deterministic Safety Floor ($L_{\text{det}}$)
+Before generative reasoning, deterministic hard triggers establish an unbreakable safety floor:
+$$L_{\text{det}} = \begin{cases} 
+1 \text{ (Resuscitation)} & \text{if GCS} \le 8 \lor \text{SpO}_2 \le 85\% \lor \text{Arrest / Apnea} \lor \text{Anaphylactic Shock} \\
+2 \text{ (Emergent)} & \text{if Atypical ACS} \lor \text{FAST Stroke} \lor \text{PALS Stridor} \lor \text{Geriatric Hypothermic Sepsis} \\
+\text{Standard} & \text{otherwise}
+\end{cases}$$
+
+### Step 3: Asymmetric Clinical Uncertainty Index ($U \in [0, 100\%]$)
+To account for zero-history patients and unrecorded vitals:
+$$U = \min\left(100,\, P_{\text{missing\_vitals}} + P_{\text{zero\_history}}(15\%) + P_{\text{ambiguity}}\right)$$
+$$\text{If } U \ge 35\% \text{ and Raw ESI} = 3 \implies \text{Escalate to ESI 2 (Fail-Safe)}$$
+
+### Step 4: Strict Composite Queue Urgency Score ($Q_{\text{rank}}$)
+To arrange all active arrivals strictly by clinical severity in the live queue:
+$$Q_{\text{rank}} = (1000 \times \text{ESI}) - (500 \times \mathbb{I}_{\text{DeteriorationAlert}}) - (2 \times T_{\text{waited}}) - S_{\text{physio}}$$
+
+- **Lowest $Q_{\text{rank}}$ is placed at Rank #1 (Top of Queue)**.
+- **Severity Hierarchy Guarantee**:
+  - ESI 1 (Resuscitation) $\approx 1000 \to$ **Always Ranks First (#1)**.
+  - ESI 2 (Emergent) $\approx 2000 \to$ **Ranks Ahead of ESI 3, 4, 5**.
+  - ESI 3 (Urgent) $\approx 3000 \to$ **Ranks Ahead of ESI 4, 5**.
+  - Within each tier, patients with active SLA breaches ($\mathbb{I} = 1$) or longer waiting duration ($T_{\text{waited}}$) automatically move ahead.
+
+### Step 5: Dynamic Estimated Time to Consultation (ETA)
+$$\text{ETA}(\text{Patient}_k) = \begin{cases} 
+\text{Immediate (Resus Bay)} & \text{if ESI} = 1 \\
+\max\left(0, \text{round}\left(\frac{(k - 1) \times T_{\text{avg\_consult}}}{N_{\text{active\_doctors}}}\right)\right) & \text{if ESI} \ge 2
+\end{cases}$$
+Where $k$ is the patient's queue position, $T_{\text{avg\_consult}} = 12\text{ mins}$, and $N_{\text{active\_doctors}} = 3$ (or $4$ in surge mode).
+
+---
+
+## 4. Technology Stack
 
 ### Backend
 - **Runtime**: Node.js (v18+)
 - **Framework**: Express.js
 - **Intelligence Engine**: Google Gemini API (`@google/generative-ai`) paired with a robust deterministic clinical fallback engine
-- **Data & Queue State**: In-memory high-speed store with optional MongoDB/Mongoose persistence
+- **Data & Queue State**: In-memory high-speed store with MongoDB Atlas cloud persistence
 - **Security & Audit**: SHA-256 anonymized health hashing, ISO 8601 audit timestamps
 
 ### Frontend
@@ -98,7 +146,7 @@ Under standard hospital operations, triage is typically conducted as a **static,
 
 ---
 
-## 4. Repository Structure
+## 5. Repository Structure
 
 ```
 PatientTriage.ai/
@@ -106,10 +154,12 @@ PatientTriage.ai/
 │   ├── data/
 │   │   └── simulatedPatients.js      # 20 Diverse clinical benchmark test cases
 │   ├── models/
+│   │   ├── PatientModel.js           # Mongoose patient cloud persistence schema
+│   │   ├── AuditLogModel.js          # Mongoose immutable audit schema
 │   │   └── patientStore.js           # Live queue state, continuous triage & surge logic
 │   ├── routes/
 │   │   ├── triageRoutes.js           # Live scoring, vital calibration, NLP voice intake
-│   │   ├── patientRoutes.js          # Queue CRUD, clinician overrides, vitals update
+│   │   ├── patientRoutes.js          # Queue CRUD, batch arrivals, clinician overrides
 │   │   ├── auditRoutes.js            # ABDM/DISHA compliance audit API
 │   │   └── statsRoutes.js            # ED command center telemetry API
 │   ├── services/
@@ -128,7 +178,7 @@ PatientTriage.ai/
 │   │   ├── components/
 │   │   │   ├── Header.jsx            # Command center status, surge toggle, tabs
 │   │   │   ├── StatsOverview.jsx     # Real-time ED telemetry cards
-│   │   │   ├── QueueDashboard.jsx    # Live dynamic queue table & cohort filters
+│   │   │   ├── QueueDashboard.jsx    # Live dynamic queue table, serial ranks & ETA
 │   │   │   ├── PatientIntakeModal.jsx # Rapid intake, voice parser & AI co-pilot modal
 │   │   │   ├── PatientDetailModal.jsx # Deep clinical telemetry & differential diagnosis
 │   │   │   ├── ClinicianOverrideModal.jsx # 1-Click override with DISHA audit signing
@@ -151,7 +201,7 @@ PatientTriage.ai/
 
 ---
 
-## 5. Getting Started
+## 6. Getting Started
 
 ### Prerequisites
 - Node.js (v18.0.0 or higher)
@@ -168,7 +218,7 @@ npm install
 # Start the backend server
 npm start
 ```
-The backend service will start on **`http://localhost:5000`** with the 20 preloaded clinical benchmark cases.
+The backend service will start on **`http://localhost:5000`** with a clean queue ready for manual intake or batch loading.
 
 ### 2. Frontend Setup
 In a separate terminal window:
@@ -191,16 +241,18 @@ In `backend/.env`:
 ```env
 PORT=5000
 NODE_ENV=development
+MONGODB_URI=your_mongodb_uri_here
 GEMINI_API_KEY=your_google_gemini_api_key_here
 ```
 
 ---
 
-## 6. Functional Walkthrough
+## 7. Functional Walkthrough
 
 1. **Live Emergency Department Command Center**:
-   - Real-time queue view sorted by composite urgency (ESI 1 through 5, active deterioration status, and wait times).
+   - Real-time queue view sorted strictly by composite urgency ($Q_{\text{rank}}$) with explicit Queue Ranks (`#1, #2, ...`) and dynamic consultation ETAs.
    - Filter by specific clinical cohorts (*Pediatric, Geriatric, Zero-History, High Uncertainty, Overridden, or SLA Breached*).
+   - Use **`+ Add 10 More Patients`** to simulate random arriving cohorts that immediately self-sort into severity positions.
 
 2. **Rapid Patient Intake & Voice Co-Pilot**:
    - Allows nurses to enter patient vitals, chief complaints, and past medical history.
@@ -223,7 +275,7 @@ GEMINI_API_KEY=your_google_gemini_api_key_here
 
 ---
 
-## 7. Regulatory & Safety Compliance
+## 8. Regulatory & Safety Compliance
 
 - **Human-in-the-Loop Architecture**: AI acts strictly as an advisory layer. Every decision remains fully overridable by licensed medical staff.
 - **Ayushman Bharat Digital Mission (ABDM Level-2)**: Supports unique health ID (ABHA) resolution and tokenized health record hashing.
@@ -232,7 +284,7 @@ GEMINI_API_KEY=your_google_gemini_api_key_here
 
 ---
 
-## 8. Authors & Team Details
+## 9. Authors & Team Details
 
 **Team 404ers (IIT Kharagpur)**
 - **Mohit Pant** (Team Leader) — Mining Engineering (B.Tech + M.Tech, 2027)

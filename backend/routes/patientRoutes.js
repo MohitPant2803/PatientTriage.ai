@@ -11,7 +11,7 @@ const { analyzePatientTriage, generateSBARNote } = require('../services/geminiSe
 
 /**
  * GET /api/patients
- * Retrieve all patients in the dynamic queue with optional filters
+ * Retrieve all patients in the dynamic queue with optional filters (strictly sorted by severity)
  */
 router.get('/', (req, res) => {
   try {
@@ -66,20 +66,20 @@ router.post('/', async (req, res) => {
 
 /**
  * POST /api/patients/seed-sample
- * Seeds 10 realistic sample patients into the queue on-demand
+ * Additively adds 10 more random simulated patients to the active queue
  */
 router.post('/seed-sample', (req, res) => {
   try {
     const { count = 10 } = req.body;
-    const seeded = patientStore.seedSamplePatients(Number(count));
+    const updatedQueue = patientStore.addRandomBatch(Number(count));
     return res.json({
       success: true,
-      message: `Loaded ${seeded.length} sample triage patients into queue.`,
-      count: seeded.length,
-      patients: seeded
+      message: `Added ${count} more patients to queue. Total active cases: ${updatedQueue.length}.`,
+      count: updatedQueue.length,
+      patients: updatedQueue
     });
   } catch (err) {
-    return res.status(500).json({ error: 'Failed to seed sample patients', details: err.message });
+    return res.status(500).json({ error: 'Failed to add random batch patients', details: err.message });
   }
 });
 

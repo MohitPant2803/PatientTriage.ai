@@ -1,6 +1,7 @@
 /**
  * Patient Store & Dynamic Emergency Department Queue State Manager
- * Implements strict clinical queue ordering and realistic multi-acuity sample distribution.
+ * Implements strict clinical severity queue ordering, incremental batch arrivals (+10 more patients),
+ * and dynamic wait time & ETA calculations.
  */
 
 const mongoose = require('mongoose');
@@ -9,9 +10,21 @@ const { fallbackTriageReasoning, generateSBARNote } = require('../services/gemin
 const { logAuditEvent } = require('../services/auditService');
 const PatientModel = require('./PatientModel');
 
+const FIRST_NAMES = [
+  'Aarav', 'Vivaan', 'Aditya', 'Vihaan', 'Arjun', 'Sai', 'Reyansh', 'Ayaan', 'Krishna', 'Ishaan',
+  'Saanvi', 'Aanya', 'Aadhya', 'Aarohi', 'Ananya', 'Pari', 'Diya', 'Riya', 'Anushka', 'Navya',
+  'Ramesh', 'Suresh', 'Kamla', 'Sushila', 'Balram', 'Harish', 'Manju', 'Laxmi', 'Vikram', 'Meera'
+];
+
+const LAST_NAMES = [
+  'Sharma', 'Verma', 'Gupta', 'Patel', 'Singh', 'Kumar', 'Mishra', 'Yadav', 'Reddy', 'Nair',
+  'Mukherjee', 'Bhattacharya', 'Chauhan', 'Joshi', 'Kulkarni', 'Deshmukh', 'Mehra', 'Sengupta'
+];
+
 class PatientStore {
   constructor() {
     this.patients = [];
+    this.patientCounter = 1000;
     this.isSurgeMode = false;
     this.surgeMultiplier = 1;
     this.activeDoctors = 3;
@@ -36,77 +49,96 @@ class PatientStore {
   }
 
   /**
-   * Seeds a balanced, realistic 10-patient emergency department sample
-   * Includes: 1 ESI 1 (Resus), 3 ESI 2 (Emergent), 3 ESI 3 (Urgent), 2 ESI 4 (Less Urgent), 1 ESI 5 (Non-Urgent)
+   * Adds a new batch of random simulated patients additively to the queue
+   * Each batch draws randomly from the 20 clinical archetypes with realistic variations
    */
-  seedSamplePatients(count = 10) {
-    console.log(`[PatientStore] Seeding balanced sample of ${count} patients...`);
+  addRandomBatch(count = 10) {
+    console.log(`[PatientStore] Adding ${count} random patients to active queue (Current size: ${this.patients.length})...`);
+    
+    // Shuffled copy of benchmark templates
+    const shuffledTemplates = [...BENCHMARK_PATIENTS].sort(() => 0.5 - Math.random());
+    const newArrivals = [];
 
-    // Pick a clinically realistic distribution from benchmark archetypes
-    // PT-1008 (ESI 1 Trauma), PT-1001 (ESI 2 Silent MI), PT-1002 (ESI 2 Peds Sepsis), PT-1003 (ESI 2 Zero-Hist Abdomen),
-    // PT-1011 (ESI 3 HTN Urgency), PT-1012 (ESI 3 Pneumonia), PT-1013 (ESI 3 Appendicitis),
-    // PT-1015 (ESI 4 Ankle Sprain), PT-1016 (ESI 4 Laceration), PT-1017 (ESI 5 Minor URI)
-    const selectedIds = [
-      'PT-1008', // ESI 1: Severe Polytrauma
-      'PT-1001', // ESI 2: Geriatric Silent MI
-      'PT-1002', // ESI 2: Pediatric Sepsis
-      'PT-1003', // ESI 2: Zero-History Acute Abdomen
-      'PT-1011', // ESI 3: Hypertensive Urgency
-      'PT-1012', // ESI 3: Pneumonia
-      'PT-1013', // ESI 3: Appendicitis
-      'PT-1015', // ESI 4: Ankle Sprain
-      'PT-1016', // ESI 4: Laceration
-      'PT-1017'  // ESI 5: Minor URI
-    ];
+    for (let i = 0; i < count; i++) {
+      this.patientCounter += 1;
+      const template = shuffledTemplates[i % shuffledTemplates.length];
+      
+      // Randomize name for uniqueness
+      const randomFirst = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
+      const randomLast = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
+      const patientName = `${randomFirst} ${randomLast}`;
+      
+      // Slightly jitter vitals around template
+      const jitter = (val, delta = 2) => Math.max(1, Math.round(val + (Math.random() * delta * 2 - delta)));
+      
+      const jitteredVitals = {
+        hr: jitter(template.vitals.hr, 3),
+        sbp: jitter(template.vitals.sbp, 4),
+        dbp: jitter(template.vitals.dbp, 3),
+        rr: jitter(template.vitals.rr, 2),
+        spo2: Math.min(100, Math.max(70, jitter(template.vitals.spo2, 1))),
+        temp: Number((template.vitals.temp + (Math.random() * 0.4 - 0.2)).toFixed(1))
+      };
 
-    const subset = selectedIds
-      .map((id) => BENCHMARK_PATIENTS.find((p) => p.id === id))
-      .filter(Boolean);
+      const rawPatient = {
+        ...template,
+        id: `PT-${this.patientCounter}`,
+        name: patientName,
+        vitals: jitteredVitals,
+        waitTimeMinutes: Math.floor(Math.random() * 15) // Random recent arrival (0 - 15 mins)
+      };
 
-    const newPatients = subset.map((p) => {
-      const triage = fallbackTriageReasoning(p);
-      const sbar = generateSBARNote(p, triage);
+      const triage = fallbackTriageReasoning(rawPatient);
+      const sbar = generateSBARNote(rawPatient, triage);
 
       logAuditEvent({
         eventType: 'AI_TRIAGE_RECOMMENDED',
-        patientId: p.id,
-        patientName: p.name,
-        abhaId: p.abhaId,
+        patientId: rawPatient.id,
+        patientName: rawPatient.name,
+        abhaId: rawPatient.abhaId,
         aiRecommendation: triage,
         nurseId: 'RN-4042 (P. Sharma)',
         nurseRole: 'Senior Triage Nurse',
-        metadata: { archetype: p.archetype }
+        metadata: { archetype: template.archetype }
       });
 
-      return {
-        ...p,
+      const processedPatient = {
+        ...rawPatient,
         triageResult: triage,
         currentESI: triage.esiLevel,
         sbarNote: sbar,
         isOverridden: false,
         overrideDetails: null,
-        deteriorationAlert: p.waitTimeMinutes > p.maxSafeWaitMinutes && p.maxSafeWaitMinutes > 0,
-        deteriorationReason:
-          p.waitTimeMinutes > p.maxSafeWaitMinutes && p.maxSafeWaitMinutes > 0
-            ? `SLA Exceeded: Waited ${p.waitTimeMinutes}m (Safe threshold: ${p.maxSafeWaitMinutes}m for ESI ${triage.esiLevel})`
-            : null,
+        maxSafeWaitMinutes:
+          triage.esiLevel === 1 ? 0 : triage.esiLevel === 2 ? 10 : triage.esiLevel === 3 ? 30 : 60,
+        deteriorationAlert:
+          rawPatient.waitTimeMinutes > (triage.esiLevel === 1 ? 0 : triage.esiLevel === 2 ? 10 : 30) &&
+          triage.esiLevel <= 2,
+        deteriorationReason: null,
         historyLog: [
           {
-            timestamp: new Date(Date.now() - p.waitTimeMinutes * 60000).toISOString(),
+            timestamp: new Date(Date.now() - rawPatient.waitTimeMinutes * 60000).toISOString(),
             action: 'INITIAL_TRIAGE',
-            note: `Initial triage completed as ESI ${triage.esiLevel} (${triage.severityLabel})`
+            note: `Patient admitted to triage queue as ESI ${triage.esiLevel}`
           }
         ]
       };
-    });
 
-    this.patients = newPatients;
+      if (processedPatient.deteriorationAlert) {
+        processedPatient.deteriorationReason = `SLA Exceeded: Waited ${processedPatient.waitTimeMinutes}m for ESI ${triage.esiLevel}`;
+      }
+
+      newArrivals.push(processedPatient);
+    }
+
+    // Additively append to existing queue
+    this.patients = [...this.patients, ...newArrivals];
 
     // Asynchronously sync to MongoDB Atlas if connected
     if (mongoose.connection.readyState === 1) {
-      for (const p of this.patients) {
+      for (const p of newArrivals) {
         PatientModel.findOneAndUpdate({ id: p.id }, p, { upsert: true, new: true }).catch((err) =>
-          console.warn('[PatientStore] MongoDB seed note:', err.message)
+          console.warn('[PatientStore] MongoDB batch create notice:', err.message)
         );
       }
     }
@@ -162,9 +194,8 @@ class PatientStore {
     }
 
     // STRICT CLINICAL QUEUE SORTING:
-    // 1. Primary: ESI Level ascending (Level 1 Resuscitation at the very top, then Level 2, 3, 4, 5)
-    // 2. Secondary: Active Deterioration / SLA breach prioritized
-    // 3. Tertiary: Longest wait time in current severity tier
+    // Sorts ALL patients strictly by severity score
+    // ESI 1 (Resuscitation) -> ESI 2 (Emergent) -> ESI 3 (Urgent) -> ESI 4 -> ESI 5
     result.sort((a, b) => {
       const scoreA = this.calculatePriorityScore(a);
       const scoreB = this.calculatePriorityScore(b);
@@ -184,7 +215,6 @@ class PatientStore {
         etaMinutes = 0;
         etaLabel = 'Immediate (Resus Bay)';
       } else {
-        // ETA formula based on doctor capacity and patient queue rank
         const rawEta = Math.max(0, Math.round(((index) * avgConsult) / activeDocCount));
         etaMinutes = rawEta;
         etaLabel = `~${rawEta} mins`;
@@ -205,7 +235,8 @@ class PatientStore {
   }
 
   addPatient(newPatientData, triageResult, sbarNote) {
-    const newId = `PT-${1000 + this.patients.length + 1}`;
+    this.patientCounter += 1;
+    const newId = `PT-${this.patientCounter}`;
     const newPatient = {
       ...newPatientData,
       id: newId,

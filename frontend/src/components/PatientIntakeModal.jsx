@@ -317,7 +317,7 @@ export default function PatientIntakeModal({
               className="flex items-center space-x-1 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-750 text-amber-300 border border-slate-700 text-[11px] font-medium transition-all duration-150 active:scale-[0.98]"
             >
               <Sparkles className="h-3 w-3 text-amber-400" />
-              <span>Load 10 Sample Patients to Queue</span>
+              <span>+ Add 10 More Patients</span>
             </button>
           )}
         </div>

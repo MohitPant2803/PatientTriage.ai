@@ -111,16 +111,16 @@ export default function QueueDashboard({
           />
         </div>
 
-        {/* Action Buttons: Add Patient & Load 10 Samples */}
+        {/* Action Buttons: Add Patient & Add 10 More Patients */}
         <div className="flex items-center space-x-2">
           <button
             onClick={onLoadSamplePatients}
             disabled={isLoadingSamples}
             className="flex items-center space-x-1.5 px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-medium border border-slate-700 transition-all duration-150 active:scale-[0.98] disabled:opacity-50"
-            title="Populate queue with 10 structured simulated clinical cases"
+            title="Add 10 more random patient arrivals into the severity-ranked queue"
           >
             <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-            <span>{isLoadingSamples ? 'Loading Samples...' : 'Load 10 Sample Patients'}</span>
+            <span>{isLoadingSamples ? 'Adding Patients...' : '+ Add 10 More Patients'}</span>
           </button>
 
           <button
@@ -175,7 +175,7 @@ export default function QueueDashboard({
           </div>
           <h3 className="text-sm font-semibold text-slate-200">Triage Queue is Clear</h3>
           <p className="text-xs text-slate-400 mt-1 mb-5 leading-relaxed">
-            No patients currently waiting in emergency intake. You can manually intake a patient or load 10 sample arrivals.
+            No patients currently waiting in emergency intake. You can manually intake a patient or add 10 more random arrivals.
           </p>
           <div className="flex items-center justify-center space-x-3">
             <button
@@ -192,7 +192,7 @@ export default function QueueDashboard({
               className="flex items-center space-x-1.5 px-4 py-2 rounded bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-medium border border-slate-700 transition-all duration-150 active:scale-[0.98] disabled:opacity-50"
             >
               <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-              <span>{isLoadingSamples ? 'Loading...' : 'Load 10 Sample Patients'}</span>
+              <span>{isLoadingSamples ? 'Adding...' : '+ Add 10 More Patients'}</span>
             </button>
           </div>
         </div>
