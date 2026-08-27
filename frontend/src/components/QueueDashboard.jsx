@@ -12,7 +12,11 @@ import {
   User,
   ShieldCheck,
   Zap,
-  HelpCircle
+  HelpCircle,
+  Plus,
+  Sparkles,
+  RotateCcw,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function QueueDashboard({
@@ -24,7 +28,11 @@ export default function QueueDashboard({
   currentFilter,
   setFilter,
   searchQuery,
-  setSearchQuery
+  setSearchQuery,
+  onOpenIntakeModal,
+  onLoadSamplePatients,
+  onClearQueue,
+  isLoadingSamples
 }) {
   const filterTabs = [
     { id: 'all', label: 'All Cases' },
@@ -36,36 +44,35 @@ export default function QueueDashboard({
     { id: 'deterioration', label: 'Deterioration SLAs', alert: true }
   ];
 
-  // Helper for ESI badge colors
   const getESIBadge = (level) => {
     switch (Number(level)) {
       case 1:
         return {
-          bg: 'bg-rose-950/80 text-rose-300 border-rose-700/80 ring-1 ring-rose-600/40',
+          bg: 'bg-rose-950/70 text-rose-300 border-rose-700/70 ring-1 ring-rose-600/30',
           label: 'ESI 1: Resuscitation',
           text: 'Immediate'
         };
       case 2:
         return {
-          bg: 'bg-orange-950/80 text-orange-300 border-orange-700/80',
+          bg: 'bg-orange-950/70 text-orange-300 border-orange-700/70',
           label: 'ESI 2: Emergent',
           text: '≤ 10 min'
         };
       case 3:
         return {
-          bg: 'bg-amber-950/80 text-amber-300 border-amber-700/80',
+          bg: 'bg-amber-950/70 text-amber-300 border-amber-700/70',
           label: 'ESI 3: Urgent',
           text: '≤ 30 min'
         };
       case 4:
         return {
-          bg: 'bg-emerald-950/80 text-emerald-300 border-emerald-700/80',
+          bg: 'bg-emerald-950/70 text-emerald-300 border-emerald-700/70',
           label: 'ESI 4: Less Urgent',
           text: '≤ 60 min'
         };
       case 5:
         return {
-          bg: 'bg-sky-950/80 text-sky-300 border-sky-700/80',
+          bg: 'bg-sky-950/70 text-sky-300 border-sky-700/70',
           label: 'ESI 5: Non-Urgent',
           text: '≤ 120 min'
         };
@@ -78,40 +85,72 @@ export default function QueueDashboard({
     }
   };
 
-  // Helper for age cohort tag
   const getAgeCohortTag = (age) => {
     const a = Number(age);
-    if (a <= 1) return { label: 'Infant', color: 'bg-purple-950/80 text-purple-300 border-purple-800/80' };
-    if (a <= 5) return { label: 'Toddler', color: 'bg-indigo-950/80 text-indigo-300 border-indigo-800/80' };
-    if (a <= 12) return { label: 'Child', color: 'bg-blue-950/80 text-blue-300 border-blue-800/80' };
-    if (a >= 65) return { label: 'Geriatric', color: 'bg-amber-950/80 text-amber-300 border-amber-800/80' };
+    if (a <= 1) return { label: 'Infant', color: 'bg-purple-950/60 text-purple-300 border-purple-850' };
+    if (a <= 5) return { label: 'Toddler', color: 'bg-indigo-950/60 text-indigo-300 border-indigo-850' };
+    if (a <= 12) return { label: 'Child', color: 'bg-blue-950/60 text-blue-300 border-blue-850' };
+    if (a >= 65) return { label: 'Geriatric', color: 'bg-amber-950/60 text-amber-300 border-amber-850' };
     return { label: 'Adult', color: 'bg-slate-850 text-slate-300 border-slate-750' };
   };
 
   return (
-    <div className="bg-slate-900/95 border border-slate-800 rounded-lg shadow-sm overflow-hidden">
-      {/* Search & Filter Header */}
+    <div className="bg-slate-900/90 border border-slate-800 rounded-lg shadow-sm overflow-hidden">
+      {/* Search & Action Bar */}
       <div className="p-3.5 border-b border-slate-800 flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-slate-925">
         {/* Search Input */}
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by patient name, ID, symptom, or ABHA token..."
+            placeholder="Search patient name, ID, symptoms..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 rounded bg-slate-950 border border-slate-800 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 font-sans"
+            className="w-full pl-8 pr-3 py-1.5 rounded bg-slate-950 border border-slate-800 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 font-sans"
           />
         </div>
 
-        {/* Filter Badges */}
-        <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 md:pb-0">
-          <Filter className="h-3.5 w-3.5 text-slate-400 mr-1 flex-shrink-0" />
+        {/* Action Buttons: Add Patient & Load 10 Samples */}
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={onLoadSamplePatients}
+            disabled={isLoadingSamples}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-medium border border-slate-700 transition-all duration-150 active:scale-[0.98] disabled:opacity-50"
+            title="Populate queue with 10 structured simulated clinical cases"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+            <span>{isLoadingSamples ? 'Loading Samples...' : 'Load 10 Sample Patients'}</span>
+          </button>
+
+          <button
+            onClick={onOpenIntakeModal}
+            className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold shadow-sm transition-all duration-150 active:scale-[0.98]"
+          >
+            <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+            <span>+ Add Patient</span>
+          </button>
+
+          {patients.length > 0 && (
+            <button
+              onClick={onClearQueue}
+              className="p-1.5 rounded text-slate-400 hover:text-rose-300 hover:bg-rose-950/40 border border-transparent hover:border-rose-800 transition-colors"
+              title="Clear active queue"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Cohort Filter Tabs */}
+      {patients.length > 0 && (
+        <div className="px-3.5 py-2 border-b border-slate-800/80 bg-slate-950/40 flex items-center space-x-1.5 overflow-x-auto">
+          <Filter className="h-3 w-3 text-slate-400 mr-1 flex-shrink-0" />
           {filterTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setFilter(tab.id)}
-              className={`flex items-center space-x-1 px-2.5 py-1 rounded text-xs font-medium whitespace-nowrap transition-all duration-150 active:scale-[0.98] ${
+              className={`flex items-center space-x-1 px-2.5 py-1 rounded text-[11.5px] font-medium whitespace-nowrap transition-all duration-150 active:scale-[0.98] ${
                 currentFilter === tab.id
                   ? 'bg-sky-600 text-white shadow-sm'
                   : 'bg-slate-850 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-750'
@@ -125,31 +164,53 @@ export default function QueueDashboard({
             </button>
           ))}
         </div>
-      </div>
+      )}
 
-      {/* Patient Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-slate-800 bg-slate-950 text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider">
-              <th className="py-2.5 px-3">Patient & ID</th>
-              <th className="py-2.5 px-3">Age / Cohort</th>
-              <th className="py-2.5 px-3">Chief Complaint & Presentation</th>
-              <th className="py-2.5 px-3">Calibrated Vitals</th>
-              <th className="py-2.5 px-3">Triage Priority (ESI)</th>
-              <th className="py-2.5 px-3">Wait & SLA</th>
-              <th className="py-2.5 px-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800/70 text-xs">
-            {patients.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="py-8 text-center text-slate-400 font-sans">
-                  No patient cases match the active filter.
-                </td>
+      {/* Patient Queue Content */}
+      {patients.length === 0 ? (
+        <div className="py-16 px-4 text-center max-w-md mx-auto">
+          <div className="h-12 w-12 rounded-full bg-slate-850 border border-slate-750 flex items-center justify-center mx-auto mb-3 text-slate-400">
+            <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+          </div>
+          <h3 className="text-sm font-semibold text-slate-200">Triage Queue is Clear</h3>
+          <p className="text-xs text-slate-400 mt-1 mb-5 leading-relaxed">
+            No patients currently waiting in emergency intake. You can manually intake a patient or load 10 sample arrivals.
+          </p>
+          <div className="flex items-center justify-center space-x-3">
+            <button
+              onClick={onOpenIntakeModal}
+              className="flex items-center space-x-1.5 px-4 py-2 rounded bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold shadow transition-all duration-150 active:scale-[0.98]"
+            >
+              <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+              <span>+ Add Patient (Manual Intake)</span>
+            </button>
+
+            <button
+              onClick={onLoadSamplePatients}
+              disabled={isLoadingSamples}
+              className="flex items-center space-x-1.5 px-4 py-2 rounded bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-medium border border-slate-700 transition-all duration-150 active:scale-[0.98] disabled:opacity-50"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+              <span>{isLoadingSamples ? 'Loading...' : 'Load 10 Sample Patients'}</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-800 bg-slate-950 text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider">
+                <th className="py-2.5 px-3">Patient & ID</th>
+                <th className="py-2.5 px-3">Age / Cohort</th>
+                <th className="py-2.5 px-3">Chief Complaint & Presentation</th>
+                <th className="py-2.5 px-3">Calibrated Vitals</th>
+                <th className="py-2.5 px-3">Triage Priority (ESI)</th>
+                <th className="py-2.5 px-3">Wait & SLA</th>
+                <th className="py-2.5 px-3 text-right">Actions</th>
               </tr>
-            ) : (
-              patients.map((patient) => {
+            </thead>
+            <tbody className="divide-y divide-slate-800/60 text-xs">
+              {patients.map((patient) => {
                 const esiInfo = getESIBadge(patient.currentESI);
                 const cohortTag = getAgeCohortTag(patient.age);
                 const triage = patient.triageResult || {};
@@ -160,7 +221,7 @@ export default function QueueDashboard({
                 return (
                   <tr
                     key={patient.id}
-                    className={`hover:bg-slate-850/50 transition-colors ${
+                    className={`hover:bg-slate-850/40 transition-colors ${
                       hasDeterioration ? 'bg-rose-950/20' : ''
                     }`}
                   >
@@ -206,7 +267,7 @@ export default function QueueDashboard({
                       </div>
                     </td>
 
-                    {/* 3. Chief Complaint & Presentation */}
+                    {/* 3. Chief Complaint */}
                     <td className="py-2.5 px-3 max-w-xs">
                       <div className="text-slate-200 line-clamp-2 leading-relaxed text-[11.5px]">
                         {patient.chiefComplaint}
@@ -269,7 +330,7 @@ export default function QueueDashboard({
                       </div>
                     </td>
 
-                    {/* 5. Triage Priority (ESI) & Flags */}
+                    {/* 5. Triage Priority (ESI) */}
                     <td className="py-2.5 px-3">
                       <div>
                         <div
@@ -278,7 +339,6 @@ export default function QueueDashboard({
                           {esiInfo.label}
                         </div>
 
-                        {/* Safety Escalation / Override Flags */}
                         <div className="mt-1 flex flex-wrap gap-1">
                           {wasEscalated && (
                             <span
@@ -345,38 +405,34 @@ export default function QueueDashboard({
                     {/* 7. Clinical Actions */}
                     <td className="py-2.5 px-3 text-right">
                       <div className="flex items-center justify-end space-x-1">
-                        {/* Deep Clinical View */}
                         <button
                           onClick={() => onSelectPatient(patient)}
                           className="p-1.5 rounded bg-slate-850 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-750 transition-all duration-150 active:scale-[0.98]"
-                          title="Deep Clinical Rationale & Telemetry"
+                          title="Deep Clinical View"
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </button>
 
-                        {/* Clinician Override */}
                         <button
                           onClick={() => onOpenOverride(patient)}
                           className="p-1.5 rounded bg-slate-850 hover:bg-purple-950/70 text-purple-300 hover:text-purple-200 border border-slate-750 hover:border-purple-800 transition-all duration-150 active:scale-[0.98]"
-                          title="1-Click Clinician Override"
+                          title="Clinician Override"
                         >
                           <SlidersHorizontal className="h-3.5 w-3.5" />
                         </button>
 
-                        {/* Vitals Recheck / Deterioration */}
                         <button
                           onClick={() => onOpenVitalsRecheck(patient)}
                           className="p-1.5 rounded bg-slate-850 hover:bg-emerald-950/70 text-emerald-300 hover:text-emerald-200 border border-slate-750 hover:border-emerald-800 transition-all duration-150 active:scale-[0.98]"
-                          title="Re-record Vitals / Re-assess"
+                          title="Re-record Vitals"
                         >
                           <HeartPulse className="h-3.5 w-3.5" />
                         </button>
 
-                        {/* SBAR Handover */}
                         <button
                           onClick={() => onOpenSbar(patient)}
                           className="p-1.5 rounded bg-slate-850 hover:bg-sky-950/70 text-sky-300 hover:text-sky-200 border border-slate-750 hover:border-sky-800 transition-all duration-150 active:scale-[0.98]"
-                          title="Generate Doctor SBAR Handover Note"
+                          title="SBAR Handover Note"
                         >
                           <FileSpreadsheet className="h-3.5 w-3.5" />
                         </button>
@@ -384,11 +440,11 @@ export default function QueueDashboard({
                     </td>
                   </tr>
                 );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

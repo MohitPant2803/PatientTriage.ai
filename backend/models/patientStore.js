@@ -1,6 +1,7 @@
 /**
  * Patient Store & Dynamic Emergency Department Queue State Manager
- * Handles in-memory real-time state with automatic sync to MongoDB Atlas when connected.
+ * Starts empty by default for a calm, low-cognitive load nurse experience.
+ * Supports manual intake and 1-click on-demand sample patient loading.
  */
 
 const mongoose = require('mongoose');
@@ -14,17 +15,20 @@ class PatientStore {
     this.patients = [];
     this.isSurgeMode = false;
     this.surgeMultiplier = 1;
-    this.initializeStore();
+    // Starts with a clean queue for minimal cognitive load
   }
 
-  initializeStore() {
-    console.log('[PatientStore] Initializing benchmark patients...');
-    this.patients = BENCHMARK_PATIENTS.map((p) => {
-      // Pre-compute triage score
+  /**
+   * Seeds 10 realistic sample patients into the queue on-demand
+   */
+  seedSamplePatients(count = 10) {
+    console.log(`[PatientStore] Seeding ${count} sample patients into queue...`);
+    const subset = BENCHMARK_PATIENTS.slice(0, count);
+
+    const newPatients = subset.map((p) => {
       const triage = fallbackTriageReasoning(p);
       const sbar = generateSBARNote(p, triage);
 
-      // Log initial triage audit event
       logAuditEvent({
         eventType: 'AI_TRIAGE_RECOMMENDED',
         patientId: p.id,
@@ -52,38 +56,29 @@ class PatientStore {
           {
             timestamp: new Date(Date.now() - p.waitTimeMinutes * 60000).toISOString(),
             action: 'INITIAL_TRIAGE',
-            note: `Initial triage completed as ESI ${triage.esiLevel} (${triage.severityLabel})`
+            note: `Patient admitted to triage queue as ESI ${triage.esiLevel}`
           }
         ]
       };
     });
 
-    // Add 1 pre-configured clinician override for demonstration
-    this.applyClinicianOverride('PT-1003', {
-      newESI: 2,
-      category: 'HIGH_UNCERTAINTY_SURGICAL_RISK',
-      reason: 'Nurse intuition: Inability to stand upright + severe right iliac tenderness indicates probable acute surgical abdomen. Zero prior history on file.',
-      nurseId: 'RN-4042 (P. Sharma)',
-      nurseRole: 'Senior Triage Nurse'
-    });
+    this.patients = [...newPatients];
 
-    // Asynchronously sync seed patients to MongoDB Atlas if connected
-    this.syncSeedToMongoDB();
+    // Asynchronously sync to MongoDB Atlas if connected
+    if (mongoose.connection.readyState === 1) {
+      for (const p of this.patients) {
+        PatientModel.findOneAndUpdate({ id: p.id }, p, { upsert: true, new: true }).catch((err) =>
+          console.warn('[PatientStore] MongoDB seed note:', err.message)
+        );
+      }
+    }
 
-    console.log(`[PatientStore] Loaded ${this.patients.length} patients with active triage scoring.`);
+    return this.patients;
   }
 
-  async syncSeedToMongoDB() {
-    try {
-      if (mongoose.connection.readyState === 1) {
-        for (const p of this.patients) {
-          await PatientModel.findOneAndUpdate({ id: p.id }, p, { upsert: true, new: true });
-        }
-        console.log('[PatientStore] Benchmark patient records synced to MongoDB Atlas.');
-      }
-    } catch (err) {
-      console.warn('[PatientStore] MongoDB sync note:', err.message);
-    }
+  clearQueue() {
+    this.patients = [];
+    return { success: true, count: 0, message: 'Triage queue cleared.' };
   }
 
   getAllPatients(filter = {}) {
@@ -215,7 +210,6 @@ class PatientStore {
       overriddenAt: new Date().toISOString()
     };
 
-    // Update max safe wait time for new ESI
     patient.maxSafeWaitMinutes =
       patient.currentESI === 1 ? 0 : patient.currentESI === 2 ? 10 : patient.currentESI === 3 ? 30 : 60;
 
@@ -225,14 +219,12 @@ class PatientStore {
       note: `Clinician manually overridden priority from ESI ${previousESI} to ESI ${overrideData.newESI}. Reason: ${overrideData.reason}`
     });
 
-    // Sync to MongoDB Atlas
     if (mongoose.connection.readyState === 1) {
       PatientModel.findOneAndUpdate({ id: patient.id }, patient).catch((err) =>
         console.warn('[PatientStore] MongoDB override update notice:', err.message)
       );
     }
 
-    // Log to ABDM / DISHA audit trail
     logAuditEvent({
       eventType: 'CLINICIAN_OVERRIDE',
       patientId: patient.id,
@@ -253,7 +245,6 @@ class PatientStore {
 
     patient.vitals = { ...patient.vitals, ...updatedVitals };
 
-    // Re-evaluate triage with new vitals
     const newTriage = fallbackTriageReasoning(patient);
     const oldESI = patient.currentESI;
     patient.triageResult = newTriage;
@@ -271,7 +262,6 @@ class PatientStore {
       note: `Updated vitals recorded. Triage re-evaluated: ESI ${newTriage.esiLevel}. ${worsened ? 'ALERT: Condition worsened!' : 'Condition stable.'}`
     });
 
-    // Sync to MongoDB Atlas
     if (mongoose.connection.readyState === 1) {
       PatientModel.findOneAndUpdate({ id: patient.id }, patient).catch((err) =>
         console.warn('[PatientStore] MongoDB vitals update notice:', err.message)
@@ -296,7 +286,6 @@ class PatientStore {
       if (p.status === 'WAITING_FOR_DOCTOR') {
         p.waitTimeMinutes += Number(minutes);
 
-        // Check if exceeded SLA
         if (p.maxSafeWaitMinutes > 0 && p.waitTimeMinutes > p.maxSafeWaitMinutes) {
           p.deteriorationAlert = true;
           p.deteriorationReason = `SLA Exceeded: Patient has waited ${p.waitTimeMinutes}m (Max safe wait: ${p.maxSafeWaitMinutes}m for ESI ${p.currentESI}). Immediate nurse re-assessment required.`;
@@ -315,7 +304,6 @@ class PatientStore {
     }
     this.surgeMultiplier = this.isSurgeMode ? 3 : 1;
 
-    // In surge mode, adjust routing: fast-track ESI 4/5, highlight ESI 1/2
     this.patients.forEach((p) => {
       if (this.isSurgeMode && (p.currentESI === 4 || p.currentESI === 5)) {
         p.status = 'FAST_TRACK_QUEUE';
@@ -347,9 +335,12 @@ class PatientStore {
       level5: this.patients.filter((p) => p.currentESI === 5).length
     };
 
-    const avgWaitTime = Math.round(
-      this.patients.reduce((acc, p) => acc + (p.waitTimeMinutes || 0), 0) / (totalPatients || 1)
-    );
+    const avgWaitTime =
+      totalPatients > 0
+        ? Math.round(
+            this.patients.reduce((acc, p) => acc + (p.waitTimeMinutes || 0), 0) / totalPatients
+          )
+        : 0;
 
     return {
       totalPatients,
@@ -360,8 +351,8 @@ class PatientStore {
       overriddenCount,
       esiBreakdown,
       avgWaitTime,
-      bedOccupancyRate: this.isSurgeMode ? 94 : 76,
-      nurseToPatientRatio: this.isSurgeMode ? '1:18' : '1:8',
+      bedOccupancyRate: totalPatients > 0 ? (this.isSurgeMode ? 94 : 76) : 20,
+      nurseToPatientRatio: totalPatients > 0 ? (this.isSurgeMode ? '1:18' : '1:8') : '1:0',
       isSurgeMode: this.isSurgeMode,
       surgeMultiplier: this.surgeMultiplier,
       abdmConnected: true,
@@ -370,8 +361,8 @@ class PatientStore {
   }
 
   resetStore() {
-    this.initializeStore();
-    return { success: true, message: 'Store re-initialized to 20 benchmark patients' };
+    this.clearQueue();
+    return { success: true, message: 'Queue cleared.' };
   }
 }
 

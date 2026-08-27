@@ -44,7 +44,7 @@ router.get('/:id', (req, res) => {
 
 /**
  * POST /api/patients
- * Create and triage a new patient arrival
+ * Create and triage a new patient arrival manually
  */
 router.post('/', async (req, res) => {
   try {
@@ -61,6 +61,38 @@ router.post('/', async (req, res) => {
   } catch (err) {
     console.error('Error creating patient:', err);
     return res.status(500).json({ error: 'Failed to create and triage patient', details: err.message });
+  }
+});
+
+/**
+ * POST /api/patients/seed-sample
+ * Seeds 10 realistic sample patients into the queue on-demand
+ */
+router.post('/seed-sample', (req, res) => {
+  try {
+    const { count = 10 } = req.body;
+    const seeded = patientStore.seedSamplePatients(Number(count));
+    return res.json({
+      success: true,
+      message: `Loaded ${seeded.length} sample triage patients into queue.`,
+      count: seeded.length,
+      patients: seeded
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to seed sample patients', details: err.message });
+  }
+});
+
+/**
+ * POST /api/patients/clear
+ * Clears all patients from the active triage queue
+ */
+router.post('/clear', (req, res) => {
+  try {
+    const result = patientStore.clearQueue();
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to clear queue', details: err.message });
   }
 });
 
@@ -164,7 +196,7 @@ router.post('/simulation/toggle-surge', (req, res) => {
 
 /**
  * POST /api/patients/simulation/reset
- * Resets the queue back to initial 20 benchmark records
+ * Clears and resets the queue
  */
 router.post('/simulation/reset', (req, res) => {
   try {

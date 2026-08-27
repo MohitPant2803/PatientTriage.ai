@@ -16,6 +16,7 @@ export default function App() {
   const [patients, setPatients] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isLoadingSamples, setIsLoadingSamples] = useState(false);
 
   // Filters & Search
   const [currentFilter, setFilter] = useState('all');
@@ -68,9 +69,34 @@ export default function App() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 8000); // Polling every 8 seconds
+    const interval = setInterval(fetchData, 8000);
     return () => clearInterval(interval);
   }, [currentFilter, searchQuery]);
+
+  // Load 10 sample patients on demand
+  const handleLoadSamplePatients = async () => {
+    setIsLoadingSamples(true);
+    try {
+      const res = await api.seedSamplePatients(10);
+      if (res.success) {
+        await fetchData();
+      }
+    } catch (err) {
+      console.error('Failed to load sample patients:', err);
+    } finally {
+      setIsLoadingSamples(false);
+    }
+  };
+
+  // Clear queue to empty
+  const handleClearQueue = async () => {
+    try {
+      await api.clearQueue();
+      await fetchData();
+    } catch (err) {
+      console.error('Failed to clear queue:', err);
+    }
+  };
 
   // Surge toggle
   const handleToggleSurge = async (enable) => {
@@ -98,7 +124,7 @@ export default function App() {
       />
 
       {/* Main Clinical Workspace */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5">
         {/* Command Center Telemetry Bar */}
         <StatsOverview stats={stats} />
 
@@ -114,6 +140,10 @@ export default function App() {
             setFilter={setFilter}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
+            onOpenIntakeModal={() => setIsIntakeOpen(true)}
+            onLoadSamplePatients={handleLoadSamplePatients}
+            onClearQueue={handleClearQueue}
+            isLoadingSamples={isLoadingSamples}
           />
         )}
 
@@ -129,11 +159,11 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800/80 bg-slate-900/60 py-3 text-center text-xs text-slate-500">
+      <footer className="border-t border-slate-850 bg-slate-925 py-3 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>PatientTriage.ai • Round 2 Working Prototype • Team 404ers (IIT Kharagpur)</span>
+          <span>PatientTriage.ai - Team 404ers (IIT Kharagpur)</span>
           <span className="font-mono text-[11px] text-slate-400">
-            Compliant with ABDM / DISHA Act 2024 / HIPAA Clinical Decision Support
+            ABDM Level-2 • DISHA Act 2024 • HIPAA Clinical Decision Support
           </span>
         </div>
       </footer>
@@ -143,6 +173,7 @@ export default function App() {
         isOpen={isIntakeOpen}
         onClose={() => setIsIntakeOpen(false)}
         onPatientAdmitted={() => fetchData()}
+        onLoadSamplePatients={handleLoadSamplePatients}
       />
 
       <PatientDetailModal

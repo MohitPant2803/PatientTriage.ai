@@ -30,6 +30,16 @@ export const api = {
     return res.data;
   },
 
+  seedSamplePatients: async (count = 10) => {
+    const res = await client.post('/patients/seed-sample', { count });
+    return res.data;
+  },
+
+  clearQueue: async () => {
+    const res = await client.post('/patients/clear');
+    return res.data;
+  },
+
   overrideTriage: async (id, overrideData) => {
     const res = await client.post(`/patients/${id}/override`, overrideData);
     return res.data;
