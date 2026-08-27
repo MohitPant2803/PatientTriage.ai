@@ -9,13 +9,14 @@ const { evaluateDeterministicRules } = require('./safetyRuleEngine');
 const { calculateUncertainty, applyAsymmetricEscalation } = require('./uncertaintyEngine');
 const { calibrateVitals } = require('./vitalCalibrator');
 
-const apiKey = process.env.GEMINI_API_KEY || '';
-let genAI = null;
-if (apiKey) {
+function getGenAI() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || apiKey.trim() === '') return null;
   try {
-    genAI = new GoogleGenerativeAI(apiKey);
+    return new GoogleGenerativeAI(apiKey.trim());
   } catch (err) {
-    console.warn('Failed to initialize GoogleGenerativeAI with provided key:', err.message);
+    console.warn('Failed to initialize GoogleGenerativeAI:', err.message);
+    return null;
   }
 }
 
@@ -120,8 +121,8 @@ async function analyzePatientTriage(patientData) {
   const detResult = evaluateDeterministicRules(patientData);
   const uncertainty = calculateUncertainty(patientData);
 
-  // If no Gemini API key or SDK uninitialized, use clinical fallback
-  if (!genAI || !process.env.GEMINI_API_KEY) {
+  const genAI = getGenAI();
+  if (!genAI) {
     return fallbackTriageReasoning(patientData);
   }
 
