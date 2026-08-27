@@ -1,12 +1,13 @@
 /**
  * Patient Store & Dynamic Emergency Department Queue State Manager
- * Implements explicit 0-100 Numerical Severity Scoring, Strict Severity-Descending Sorting,
- * Additive Batch Inflow (+10 More Patients), and ETA Calculations.
+ * Implements computed 0-100 Numerical Severity Scoring based on actual clinical signals,
+ * Strict Severity-Descending Sorting, Additive Batch Inflow, and ETA Calculations.
  */
 
 const mongoose = require('mongoose');
 const { BENCHMARK_PATIENTS } = require('../data/simulatedPatients');
 const { fallbackTriageReasoning, generateSBARNote } = require('../services/geminiService');
+const { calibrateVitals } = require('../services/vitalCalibrator');
 const { logAuditEvent } = require('../services/auditService');
 const PatientModel = require('./PatientModel');
 
@@ -34,30 +35,106 @@ class PatientStore {
   }
 
   /**
-   * Computes an explicit 0-100 Clinical Severity Score
-   * Formula:
-   * S = Base(ESI) + VitalRiskScore + DeteriorationBonus + WaitDecay
-   * ESI 1 -> 95-100 (Critical Resuscitation)
-   * ESI 2 -> 75-94  (Emergent)
-   * ESI 3 -> 45-74  (Urgent)
-   * ESI 4 -> 25-44  (Less Urgent)
-   * ESI 5 -> 5-24   (Non-Urgent)
+   * Computes a 0-100 Clinical Severity Score from actual patient data.
+   *
+   * The score has TWO layers:
+   *
+   * LAYER 1 — ESI Acuity Floor (0-100 baseline)
+   *   The ESI level determined by the clinical reasoning pipeline (safety rule engine +
+   *   LLM/fallback + uncertainty escalation) IS the holistic clinical judgment. It already
+   *   incorporates symptom keywords, vital derangements, age-cohort risks, and deterministic
+   *   safety triggers. A patient forced to ESI 1 by the safety engine (e.g. "cardiac arrest",
+   *   "tension pneumothorax", GCS <= 8) MUST have a high baseline score — this is the clinical
+   *   reality, not a hack. The floor ensures that no ESI 1 patient can ever score below 85,
+   *   no ESI 2 below 60, etc.
+   *
+   * LAYER 2 — Computed Clinical Modifiers (spread within the ESI band)
+   *   Within each ESI band, patients are differentiated by:
+   *   - Vital sign derangement (from age-calibrated calibrator, 0-10 scale)
+   *   - GCS depression
+   *   - Pain intensity
+   *   - Number of safety rule triggers
+   *   - Clinical uncertainty (missing data, zero-history)
+   *   - Deterioration alert status
+   *   - Wait time decay
+   *
+   * This produces scores like:
+   *   ESI 1 cardiac arrest, GCS 3:           98/100
+   *   ESI 1 tension pneumothorax, GCS 15:    88/100
+   *   ESI 2 atypical MI, high vital risk:    78/100
+   *   ESI 2 stable emergent:                 64/100
+   *   ESI 3 acute abdomen, pain 9:           52/100
+   *   ESI 3 stable urgent:                   38/100
+   *   ESI 4 ankle sprain:                    18/100
+   *   ESI 5 prescription refill:              6/100
    */
   calculateSeverityScore(patient) {
+    const age = Number(patient.age) || 35;
+    const vitals = patient.vitals || {};
+    const gcs = Number(patient.gcs) || 15;
+    const painScore = Number(patient.painScore) || 0;
     const esi = Number(patient.currentESI) || 3;
-    const vitalRisk = Number(patient.triageResult?.vitalCalib?.vitalRiskScore) || 0;
-    const isAlert = patient.deteriorationAlert ? 6 : 0;
-    const waitBonus = Math.min(6, Math.floor((Number(patient.waitTimeMinutes) || 0) / 6));
 
-    let base = 50;
-    if (esi === 1) base = 94;
-    else if (esi === 2) base = 76;
-    else if (esi === 3) base = 50;
-    else if (esi === 4) base = 28;
-    else if (esi === 5) base = 10;
+    // --- LAYER 1: ESI Acuity Floor & Ceiling ---
+    // Each ESI level defines a score band. The floor is the minimum possible score
+    // for that acuity level. The bandwidth determines how much the modifiers can add.
+    let floor, bandwidth;
+    switch (esi) {
+      case 1: floor = 85; bandwidth = 15; break;   // Score range: 85-100
+      case 2: floor = 60; bandwidth = 25; break;   // Score range: 60-85
+      case 3: floor = 30; bandwidth = 30; break;   // Score range: 30-60
+      case 4: floor = 12; bandwidth = 18; break;   // Score range: 12-30
+      case 5: floor = 2;  bandwidth = 10; break;   // Score range: 2-12
+      default: floor = 30; bandwidth = 30;
+    }
 
-    const total = base + Math.min(6, vitalRisk * 1.5) + isAlert + waitBonus;
-    return Math.min(100, Math.max(1, Math.round(total)));
+    // --- LAYER 2: Computed Clinical Modifiers (normalized to 0.0 - 1.0) ---
+    const vitalCalib = patient.triageResult?.vitalCalib || calibrateVitals(vitals, age);
+    const vitalRiskRaw = Number(vitalCalib.vitalRiskScore) || 0;   // 0-10
+    const isLifeThreatening = vitalCalib.isLifeThreatening || false;
+    const isHighRisk = vitalCalib.isHighRisk || false;
+
+    // GCS modifier (0.0 - 1.0): GCS 15 = 0, GCS 3 = 1.0
+    const gcsNorm = Math.min(1.0, Math.max(0, (15 - gcs) / 12));
+
+    // Vital derangement modifier (0.0 - 1.0)
+    let vitalNorm = Math.min(1.0, vitalRiskRaw / 10);
+    if (isLifeThreatening) vitalNorm = Math.max(vitalNorm, 0.9);
+    else if (isHighRisk) vitalNorm = Math.max(vitalNorm, 0.5);
+
+    // Pain modifier (0.0 - 1.0)
+    const painNorm = Math.min(1.0, painScore / 10);
+
+    // Safety trigger count modifier (0.0 - 1.0)
+    const triggerCount = (patient.triageResult?.deterministicTriggers || []).length;
+    const triggerNorm = Math.min(1.0, triggerCount / 3);
+
+    // Uncertainty modifier (0.0 - 1.0)
+    const uncertaintyPct = Number(patient.triageResult?.uncertaintyPercentage) || 0;
+    const uncertaintyNorm = Math.min(1.0, uncertaintyPct / 100);
+
+    // Deterioration flag (0 or 1)
+    const deteriorationNorm = patient.deteriorationAlert ? 1.0 : 0;
+
+    // Wait time modifier (0.0 - 1.0, caps at 60 mins)
+    const waitMins = Number(patient.waitTimeMinutes) || 0;
+    const waitNorm = Math.min(1.0, waitMins / 60);
+
+    // Weighted composite modifier (0.0 - 1.0)
+    // Weights reflect clinical importance for within-band differentiation
+    const composite = (
+      gcsNorm * 0.25 +          // 25% weight: consciousness level
+      vitalNorm * 0.30 +        // 30% weight: physiological derangement
+      painNorm * 0.10 +         // 10% weight: pain severity
+      triggerNorm * 0.15 +      // 15% weight: safety rule triggers
+      uncertaintyNorm * 0.05 +  //  5% weight: clinical uncertainty
+      deteriorationNorm * 0.10 + // 10% weight: SLA breach / deterioration
+      waitNorm * 0.05           //  5% weight: wait time urgency
+    );
+
+    // Final score = floor + (composite * bandwidth)
+    const rawScore = floor + Math.round(composite * bandwidth);
+    return Math.min(100, Math.max(1, rawScore));
   }
 
   /**
@@ -65,7 +142,7 @@ class PatientStore {
    */
   addRandomBatch(count = 10) {
     console.log(`[PatientStore] Adding ${count} random patients to active queue (Current count: ${this.patients.length})...`);
-    
+
     // Pick from all 50 benchmark cases randomly
     const shuffled = [...BENCHMARK_PATIENTS].sort(() => 0.5 - Math.random());
     const newArrivals = [];
@@ -73,13 +150,13 @@ class PatientStore {
     for (let i = 0; i < count; i++) {
       this.patientCounter += 1;
       const template = shuffled[i % shuffled.length];
-      
+
       const randomFirst = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
       const randomLast = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
       const patientName = `${randomFirst} ${randomLast}`;
-      
+
       const jitter = (val, delta = 2) => Math.max(1, Math.round(val + (Math.random() * delta * 2 - delta)));
-      
+
       const jitteredVitals = {
         hr: jitter(template.vitals.hr, 3),
         sbp: jitter(template.vitals.sbp, 4),
@@ -206,12 +283,12 @@ class PatientStore {
     }
 
     // STRICT SEVERITY SCORE DESCENDING ORDER:
-    // Highest severity score (e.g. 98, 95, 88, 85, 75, 60, 30, 15) comes FIRST!
+    // Highest severity score (e.g. 98, 85, 72, 45, 15) comes FIRST
     result.sort((a, b) => {
       if (b.severityScore !== a.severityScore) {
         return b.severityScore - a.severityScore;
       }
-      return b.waitTimeMinutes - a.waitTimeMinutes;
+      return (b.waitTimeMinutes || 0) - (a.waitTimeMinutes || 0);
     });
 
     const activeDocCount = this.isSurgeMode ? 4 : this.activeDoctors;
@@ -226,7 +303,7 @@ class PatientStore {
         etaMinutes = 0;
         etaLabel = 'Immediate (Resus Bay)';
       } else {
-        const rawEta = Math.max(0, Math.round(((index) * avgConsult) / activeDocCount));
+        const rawEta = Math.max(0, Math.round((index * avgConsult) / activeDocCount));
         etaMinutes = rawEta;
         etaLabel = `~${rawEta} mins`;
       }
@@ -274,7 +351,7 @@ class PatientStore {
     };
 
     newPatient.severityScore = this.calculateSeverityScore(newPatient);
-    this.patients.unshift(newPatient);
+    this.patients.push(newPatient);
 
     if (mongoose.connection.readyState === 1) {
       PatientModel.create(newPatient).catch((err) =>
