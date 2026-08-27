@@ -16,7 +16,8 @@ import {
   Plus,
   Sparkles,
   RotateCcw,
-  CheckCircle2
+  CheckCircle2,
+  Hourglass
 } from 'lucide-react';
 
 export default function QueueDashboard({
@@ -48,31 +49,31 @@ export default function QueueDashboard({
     switch (Number(level)) {
       case 1:
         return {
-          bg: 'bg-rose-950/70 text-rose-300 border-rose-700/70 ring-1 ring-rose-600/30',
+          bg: 'bg-rose-950/80 text-rose-300 border-rose-700/80 ring-1 ring-rose-600/40',
           label: 'ESI 1: Resuscitation',
           text: 'Immediate'
         };
       case 2:
         return {
-          bg: 'bg-orange-950/70 text-orange-300 border-orange-700/70',
+          bg: 'bg-orange-950/80 text-orange-300 border-orange-700/80',
           label: 'ESI 2: Emergent',
           text: '≤ 10 min'
         };
       case 3:
         return {
-          bg: 'bg-amber-950/70 text-amber-300 border-amber-700/70',
+          bg: 'bg-amber-950/80 text-amber-300 border-amber-700/80',
           label: 'ESI 3: Urgent',
           text: '≤ 30 min'
         };
       case 4:
         return {
-          bg: 'bg-emerald-950/70 text-emerald-300 border-emerald-700/70',
+          bg: 'bg-emerald-950/80 text-emerald-300 border-emerald-700/80',
           label: 'ESI 4: Less Urgent',
           text: '≤ 60 min'
         };
       case 5:
         return {
-          bg: 'bg-sky-950/70 text-sky-300 border-sky-700/70',
+          bg: 'bg-sky-950/80 text-sky-300 border-sky-700/80',
           label: 'ESI 5: Non-Urgent',
           text: '≤ 120 min'
         };
@@ -200,23 +201,25 @@ export default function QueueDashboard({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-800 bg-slate-950 text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider">
+                <th className="py-2.5 px-3 text-center w-12">Rank #</th>
                 <th className="py-2.5 px-3">Patient & ID</th>
                 <th className="py-2.5 px-3">Age / Cohort</th>
                 <th className="py-2.5 px-3">Chief Complaint & Presentation</th>
                 <th className="py-2.5 px-3">Calibrated Vitals</th>
                 <th className="py-2.5 px-3">Triage Priority (ESI)</th>
-                <th className="py-2.5 px-3">Wait & SLA</th>
+                <th className="py-2.5 px-3">Wait & Est. Consultation</th>
                 <th className="py-2.5 px-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 text-xs">
-              {patients.map((patient) => {
+              {patients.map((patient, index) => {
                 const esiInfo = getESIBadge(patient.currentESI);
                 const cohortTag = getAgeCohortTag(patient.age);
                 const triage = patient.triageResult || {};
                 const isOverridden = patient.isOverridden;
                 const hasDeterioration = patient.deteriorationAlert;
                 const wasEscalated = triage.wasEscalated;
+                const queueNum = patient.queuePosition || index + 1;
 
                 return (
                   <tr
@@ -225,6 +228,23 @@ export default function QueueDashboard({
                       hasDeterioration ? 'bg-rose-950/20' : ''
                     }`}
                   >
+                    {/* 0. Serial Number / Queue Position Badge */}
+                    <td className="py-2.5 px-3 text-center">
+                      <div
+                        className={`inline-flex items-center justify-center h-6 w-6 rounded-full font-mono text-[11px] font-bold ${
+                          patient.currentESI === 1
+                            ? 'bg-rose-600 text-white shadow-sm shadow-rose-600/50'
+                            : patient.currentESI === 2
+                            ? 'bg-orange-950 text-orange-300 border border-orange-700'
+                            : patient.currentESI === 3
+                            ? 'bg-amber-950 text-amber-300 border border-amber-700'
+                            : 'bg-slate-800 text-slate-300 border border-slate-700'
+                        }`}
+                      >
+                        {queueNum}
+                      </div>
+                    </td>
+
                     {/* 1. Patient & ABDM Status */}
                     <td className="py-2.5 px-3">
                       <div>
@@ -373,7 +393,7 @@ export default function QueueDashboard({
                       </div>
                     </td>
 
-                    {/* 6. Wait & SLA */}
+                    {/* 6. Wait Time & Estimated Consultation (ETA) */}
                     <td className="py-2.5 px-3">
                       <div>
                         <div className="flex items-center space-x-1 font-mono text-[11px]">
@@ -383,11 +403,14 @@ export default function QueueDashboard({
                               hasDeterioration ? 'text-rose-400' : 'text-slate-200'
                             }`}
                           >
-                            {patient.waitTimeMinutes}m wait
+                            Waited: {patient.waitTimeMinutes}m
                           </span>
                         </div>
-                        <div className="text-[9.5px] text-slate-400 mt-0.5 font-mono">
-                          Target: {esiInfo.text}
+
+                        {/* Estimated Time to Doctor */}
+                        <div className="flex items-center space-x-1 font-mono text-[10.5px] mt-0.5 text-sky-400">
+                          <Hourglass className="h-3 w-3 text-sky-400" />
+                          <span>ETA: {patient.estimatedConsultationLabel || (patient.currentESI === 1 ? 'Immediate' : `~${index * 10}m`)}</span>
                         </div>
 
                         {hasDeterioration && (

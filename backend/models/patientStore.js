@@ -1,7 +1,6 @@
 /**
  * Patient Store & Dynamic Emergency Department Queue State Manager
- * Starts empty by default for a calm, low-cognitive load nurse experience.
- * Supports manual intake and 1-click on-demand sample patient loading.
+ * Implements strict clinical queue ordering and realistic multi-acuity sample distribution.
  */
 
 const mongoose = require('mongoose');
@@ -15,15 +14,54 @@ class PatientStore {
     this.patients = [];
     this.isSurgeMode = false;
     this.surgeMultiplier = 1;
-    // Starts with a clean queue for minimal cognitive load
+    this.activeDoctors = 3;
+    this.avgConsultMinutes = 12;
   }
 
   /**
-   * Seeds 10 realistic sample patients into the queue on-demand
+   * Calculates the Composite Priority Score for strict clinical ordering
+   * Formula:
+   * Rank Score = (1000 * ESI) - (500 * DeteriorationAlert) - (2 * WaitTime) - VitalRiskScore
+   * Lower score = Higher Priority (Rank #1 at the top)
+   */
+  calculatePriorityScore(patient) {
+    const esi = Number(patient.currentESI) || 3;
+    const isAlert = patient.deteriorationAlert ? 1 : 0;
+    const wait = Number(patient.waitTimeMinutes) || 0;
+    const vitalRisk = Number(patient.triageResult?.vitalCalib?.vitalRiskScore) || 0;
+
+    // Strict clinical priority index:
+    // ESI 1 (1000) always beats ESI 2 (2000), which always beats ESI 3 (3000)
+    return (1000 * esi) - (500 * isAlert) - (2 * wait) - vitalRisk;
+  }
+
+  /**
+   * Seeds a balanced, realistic 10-patient emergency department sample
+   * Includes: 1 ESI 1 (Resus), 3 ESI 2 (Emergent), 3 ESI 3 (Urgent), 2 ESI 4 (Less Urgent), 1 ESI 5 (Non-Urgent)
    */
   seedSamplePatients(count = 10) {
-    console.log(`[PatientStore] Seeding ${count} sample patients into queue...`);
-    const subset = BENCHMARK_PATIENTS.slice(0, count);
+    console.log(`[PatientStore] Seeding balanced sample of ${count} patients...`);
+
+    // Pick a clinically realistic distribution from benchmark archetypes
+    // PT-1008 (ESI 1 Trauma), PT-1001 (ESI 2 Silent MI), PT-1002 (ESI 2 Peds Sepsis), PT-1003 (ESI 2 Zero-Hist Abdomen),
+    // PT-1011 (ESI 3 HTN Urgency), PT-1012 (ESI 3 Pneumonia), PT-1013 (ESI 3 Appendicitis),
+    // PT-1015 (ESI 4 Ankle Sprain), PT-1016 (ESI 4 Laceration), PT-1017 (ESI 5 Minor URI)
+    const selectedIds = [
+      'PT-1008', // ESI 1: Severe Polytrauma
+      'PT-1001', // ESI 2: Geriatric Silent MI
+      'PT-1002', // ESI 2: Pediatric Sepsis
+      'PT-1003', // ESI 2: Zero-History Acute Abdomen
+      'PT-1011', // ESI 3: Hypertensive Urgency
+      'PT-1012', // ESI 3: Pneumonia
+      'PT-1013', // ESI 3: Appendicitis
+      'PT-1015', // ESI 4: Ankle Sprain
+      'PT-1016', // ESI 4: Laceration
+      'PT-1017'  // ESI 5: Minor URI
+    ];
+
+    const subset = selectedIds
+      .map((id) => BENCHMARK_PATIENTS.find((p) => p.id === id))
+      .filter(Boolean);
 
     const newPatients = subset.map((p) => {
       const triage = fallbackTriageReasoning(p);
@@ -56,13 +94,13 @@ class PatientStore {
           {
             timestamp: new Date(Date.now() - p.waitTimeMinutes * 60000).toISOString(),
             action: 'INITIAL_TRIAGE',
-            note: `Patient admitted to triage queue as ESI ${triage.esiLevel}`
+            note: `Initial triage completed as ESI ${triage.esiLevel} (${triage.severityLabel})`
           }
         ]
       };
     });
 
-    this.patients = [...newPatients];
+    this.patients = newPatients;
 
     // Asynchronously sync to MongoDB Atlas if connected
     if (mongoose.connection.readyState === 1) {
@@ -73,7 +111,7 @@ class PatientStore {
       }
     }
 
-    return this.patients;
+    return this.getAllPatients();
   }
 
   clearQueue() {
@@ -123,25 +161,47 @@ class PatientStore {
       result = result.filter((p) => !p.hasPriorHistory);
     }
 
-    // Dynamic queue sorting:
-    // 1. ESI Level (Level 1 first, then 2, 3, 4, 5)
-    // 2. Deterioration alert active
-    // 3. Wait time descending
+    // STRICT CLINICAL QUEUE SORTING:
+    // 1. Primary: ESI Level ascending (Level 1 Resuscitation at the very top, then Level 2, 3, 4, 5)
+    // 2. Secondary: Active Deterioration / SLA breach prioritized
+    // 3. Tertiary: Longest wait time in current severity tier
     result.sort((a, b) => {
-      if (a.currentESI !== b.currentESI) {
-        return a.currentESI - b.currentESI;
-      }
-      if (a.deteriorationAlert !== b.deteriorationAlert) {
-        return b.deteriorationAlert ? 1 : -1;
-      }
-      return b.waitTimeMinutes - a.waitTimeMinutes;
+      const scoreA = this.calculatePriorityScore(a);
+      const scoreB = this.calculatePriorityScore(b);
+      return scoreA - scoreB;
     });
 
-    return result;
+    // Compute dynamic Estimated Time to Consultation (ETA) and Queue Position for each patient
+    const activeDocCount = this.isSurgeMode ? 4 : this.activeDoctors;
+    const avgConsult = this.avgConsultMinutes;
+
+    return result.map((p, index) => {
+      const queuePosition = index + 1;
+      let etaMinutes = 0;
+      let etaLabel = 'Immediate';
+
+      if (Number(p.currentESI) === 1) {
+        etaMinutes = 0;
+        etaLabel = 'Immediate (Resus Bay)';
+      } else {
+        // ETA formula based on doctor capacity and patient queue rank
+        const rawEta = Math.max(0, Math.round(((index) * avgConsult) / activeDocCount));
+        etaMinutes = rawEta;
+        etaLabel = `~${rawEta} mins`;
+      }
+
+      return {
+        ...p,
+        queuePosition,
+        estimatedConsultationMinutes: etaMinutes,
+        estimatedConsultationLabel: etaLabel
+      };
+    });
   }
 
   getPatientById(id) {
-    return this.patients.find((p) => p.id === id);
+    const all = this.getAllPatients();
+    return all.find((p) => p.id === id);
   }
 
   addPatient(newPatientData, triageResult, sbarNote) {
@@ -190,11 +250,11 @@ class PatientStore {
       nurseRole: 'Senior Triage Nurse'
     });
 
-    return newPatient;
+    return this.getPatientById(newId);
   }
 
   applyClinicianOverride(patientId, overrideData) {
-    const patient = this.getPatientById(patientId);
+    const patient = this.patients.find((p) => p.id === patientId);
     if (!patient) return null;
 
     const previousESI = patient.currentESI;
@@ -236,11 +296,11 @@ class PatientStore {
       clinicalJustification: overrideData.reason
     });
 
-    return patient;
+    return this.getPatientById(patientId);
   }
 
   updatePatientVitals(patientId, updatedVitals) {
-    const patient = this.getPatientById(patientId);
+    const patient = this.patients.find((p) => p.id === patientId);
     if (!patient) return null;
 
     patient.vitals = { ...patient.vitals, ...updatedVitals };
@@ -278,7 +338,7 @@ class PatientStore {
       metadata: { previousESI: oldESI, newESI: newTriage.esiLevel, worsened }
     });
 
-    return patient;
+    return this.getPatientById(patientId);
   }
 
   simulateQueueTimeAdvance(minutes = 15) {
