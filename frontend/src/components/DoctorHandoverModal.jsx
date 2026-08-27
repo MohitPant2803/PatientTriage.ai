@@ -5,8 +5,7 @@ import {
   Copy,
   Check,
   Printer,
-  ShieldCheck,
-  Stethoscope
+  ShieldCheck
 } from 'lucide-react';
 
 export default function DoctorHandoverModal({
@@ -90,7 +89,7 @@ TIMESTAMP: ${new Date().toLocaleString()}
             </div>
 
             <div className="text-right">
-              <span className="inline-block px-2.5 py-1 rounded bg-sky-950 text-sky-300 font-bold border border-sky-800 text-xs">
+              <span className="inline-block px-2.5 py-1 rounded bg-sky-950 text-sky-300 font-bold border border-sky-800 text-xs font-mono">
                 ESI Level {patient.currentESI}
               </span>
             </div>
@@ -100,7 +99,7 @@ TIMESTAMP: ${new Date().toLocaleString()}
           <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
             <div className="font-bold text-sky-400 uppercase tracking-wider text-[11px] mb-1 flex items-center">
               <span className="h-2 w-2 rounded-full bg-sky-400 mr-1.5"></span>
-              S — Situation
+              S: Situation
             </div>
             <p className="text-slate-200 leading-relaxed">{sbar.situation || patient.chiefComplaint}</p>
           </div>
@@ -109,7 +108,7 @@ TIMESTAMP: ${new Date().toLocaleString()}
           <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
             <div className="font-bold text-indigo-400 uppercase tracking-wider text-[11px] mb-1 flex items-center">
               <span className="h-2 w-2 rounded-full bg-indigo-400 mr-1.5"></span>
-              B — Background
+              B: Background
             </div>
             <p className="text-slate-200 leading-relaxed">
               {sbar.background || (patient.medicalHistory || []).join(', ') || 'No prior medical history on file (ABDM Null)'}
@@ -120,7 +119,7 @@ TIMESTAMP: ${new Date().toLocaleString()}
           <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
             <div className="font-bold text-amber-400 uppercase tracking-wider text-[11px] mb-1 flex items-center">
               <span className="h-2 w-2 rounded-full bg-amber-400 mr-1.5"></span>
-              A — Assessment
+              A: Assessment
             </div>
             <p className="text-slate-200 leading-relaxed">
               {sbar.assessment || patient.triageResult?.clinicalRationale || 'Physiological assessment stable'}
@@ -131,7 +130,7 @@ TIMESTAMP: ${new Date().toLocaleString()}
           <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
             <div className="font-bold text-emerald-400 uppercase tracking-wider text-[11px] mb-1 flex items-center">
               <span className="h-2 w-2 rounded-full bg-emerald-400 mr-1.5"></span>
-              R — Recommendation
+              R: Recommendation
             </div>
             <p className="text-slate-200 leading-relaxed">
               {sbar.recommendation || (patient.triageResult?.predictedResourceNeeds || []).join(', ') || 'Bedside evaluation'}
@@ -141,15 +140,15 @@ TIMESTAMP: ${new Date().toLocaleString()}
 
         {/* Footer Actions */}
         <div className="p-3 border-t border-slate-800 flex items-center justify-between bg-slate-950">
-          <div className="text-[11px] text-slate-400 flex items-center space-x-1">
+          <div className="text-[11px] text-slate-400 flex items-center space-x-1 font-mono">
             <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            <span>DISHA / ABDM Handover Certified</span>
+            <span>DISHA / ABDM Certified</span>
           </div>
 
           <div className="flex items-center space-x-2">
             <button
               onClick={handlePrint}
-              className="px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-medium border border-slate-700 flex items-center space-x-1.5 transition-colors"
+              className="px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-medium border border-slate-700 flex items-center space-x-1.5 transition-all duration-150 active:scale-[0.98]"
             >
               <Printer className="h-3.5 w-3.5" />
               <span>Print Sheet</span>
@@ -157,7 +156,7 @@ TIMESTAMP: ${new Date().toLocaleString()}
 
             <button
               onClick={handleCopy}
-              className="px-4 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold shadow-md shadow-sky-600/30 flex items-center space-x-1.5 transition-all"
+              className="px-4 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold shadow-md shadow-sky-600/30 flex items-center space-x-1.5 transition-all duration-150 active:scale-[0.98]"
             >
               {copied ? (
                 <>

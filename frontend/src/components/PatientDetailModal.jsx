@@ -42,12 +42,12 @@ export default function PatientDetailModal({
                 <h2 className="text-base font-bold text-white">{patient.name}</h2>
                 <span className="font-mono text-xs text-slate-400">({patient.id})</span>
                 {patient.hasPriorHistory ? (
-                  <span className="inline-flex items-center text-[10px] text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800">
+                  <span className="inline-flex items-center text-[10px] text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800 font-mono">
                     <ShieldCheck className="h-3 w-3 mr-1" />
                     ABDM: {patient.abhaId}
                   </span>
                 ) : (
-                  <span className="text-[10px] text-amber-400 bg-amber-950 px-2 py-0.5 rounded border border-amber-800">
+                  <span className="text-[10px] text-amber-400 bg-amber-950 px-2 py-0.5 rounded border border-amber-800 font-mono">
                     Zero-History (First Time)
                   </span>
                 )}
@@ -75,7 +75,7 @@ export default function PatientDetailModal({
                 Assigned Clinical Urgency
               </span>
               <div className="text-sm font-bold text-white mt-0.5">
-                ESI Level {patient.currentESI} — {triage.severityLabel || 'Standard Triage'}
+                ESI Level {patient.currentESI}: {triage.severityLabel || 'Standard Triage'}
               </div>
               <div className="text-[11px] text-slate-400 mt-0.5">
                 Current Waiting Time: <span className="font-mono text-white">{patient.waitTimeMinutes} mins</span> (Safe SLA Threshold: {patient.maxSafeWaitMinutes} mins)
@@ -88,7 +88,7 @@ export default function PatientDetailModal({
                   onClose();
                   onOpenOverride(patient);
                 }}
-                className="px-3 py-1.5 rounded bg-purple-950 hover:bg-purple-900 text-purple-300 border border-purple-800 flex items-center space-x-1 font-medium transition-colors"
+                className="px-3 py-1.5 rounded bg-purple-950 hover:bg-purple-900 text-purple-300 border border-purple-800 flex items-center space-x-1 font-medium transition-all duration-150 active:scale-[0.98]"
               >
                 <SlidersHorizontal className="h-3.5 w-3.5" />
                 <span>Override Priority</span>
@@ -99,7 +99,7 @@ export default function PatientDetailModal({
                   onClose();
                   onOpenSbar(patient);
                 }}
-                className="px-3 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white flex items-center space-x-1 font-medium shadow transition-colors"
+                className="px-3 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white flex items-center space-x-1 font-semibold shadow transition-all duration-150 active:scale-[0.98]"
               >
                 <FileSpreadsheet className="h-3.5 w-3.5" />
                 <span>SBAR Handover</span>

@@ -1,5 +1,5 @@
 /**
- * PatientTriage.ai — MERN Backend Server
+ * PatientTriage.ai - MERN Backend Server
  * Round 2: Accenture Innovation Challenge 2026
  * Team: 404ers (IIT Kharagpur)
  */
@@ -62,7 +62,7 @@ app.get('/', (req, res) => {
       <head><title>PatientTriage.ai API Server</title></head>
       <body style="font-family: sans-serif; padding: 40px; background: #0f172a; color: #f8fafc;">
         <h1 style="color: #38bdf8;">PatientTriage.ai Backend API (v2.0)</h1>
-        <p>Accenture Innovation Challenge 2026 — Round 2 Working Prototype Service</p>
+        <p>Accenture Innovation Challenge 2026 - Round 2 Working Prototype Service</p>
         <ul>
           <li><strong>API Health:</strong> <a style="color: #34d399;" href="/api/health">/api/health</a></li>
           <li><strong>Live Triage Queue:</strong> <a style="color: #34d399;" href="/api/patients">/api/patients</a></li>

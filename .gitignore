@@ -11,6 +11,10 @@ node_modules/
 backend/.env
 frontend/.env
 
+# Agent skills cache
+.agents/
+.gemini/
+
 # Build outputs
 dist/
 build/

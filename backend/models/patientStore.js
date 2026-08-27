@@ -326,7 +326,7 @@ class PatientStore {
       isSurgeMode: this.isSurgeMode,
       surgeMultiplier: this.surgeMultiplier,
       surgeStatusMessage: this.isSurgeMode
-        ? 'SURGE PROTOCOL ACTIVE (3x Volume Load) — Fast-tracking Level 4 & 5 to ambulatory zone; reserving Resuscitation Bays for Level 1 & 2'
+        ? 'SURGE PROTOCOL ACTIVE (3x Volume Load) - Fast-tracking Level 4 & 5 to ambulatory zone; reserving Resuscitation Bays for Level 1 & 2'
         : 'NORMAL OPERATING CONDITIONS (1x Baseline Volume)'
     };
   }
