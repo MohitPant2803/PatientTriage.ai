@@ -1,7 +1,7 @@
 /**
  * Patient Store & Dynamic Emergency Department Queue State Manager
- * Implements strict clinical severity queue ordering, incremental batch arrivals (+10 more patients),
- * and dynamic wait time & ETA calculations.
+ * Implements explicit 0-100 Numerical Severity Scoring, Strict Severity-Descending Sorting,
+ * Additive Batch Inflow (+10 More Patients), and ETA Calculations.
  */
 
 const mongoose = require('mongoose');
@@ -13,12 +13,14 @@ const PatientModel = require('./PatientModel');
 const FIRST_NAMES = [
   'Aarav', 'Vivaan', 'Aditya', 'Vihaan', 'Arjun', 'Sai', 'Reyansh', 'Ayaan', 'Krishna', 'Ishaan',
   'Saanvi', 'Aanya', 'Aadhya', 'Aarohi', 'Ananya', 'Pari', 'Diya', 'Riya', 'Anushka', 'Navya',
-  'Ramesh', 'Suresh', 'Kamla', 'Sushila', 'Balram', 'Harish', 'Manju', 'Laxmi', 'Vikram', 'Meera'
+  'Ramesh', 'Suresh', 'Kamla', 'Sushila', 'Balram', 'Harish', 'Manju', 'Laxmi', 'Vikram', 'Meera',
+  'Deepak', 'Sunita', 'Santosh', 'Tanmay', 'Ritu', 'Farzana', 'Gaurav', 'Tarun', 'Shalini', 'Nandlal'
 ];
 
 const LAST_NAMES = [
   'Sharma', 'Verma', 'Gupta', 'Patel', 'Singh', 'Kumar', 'Mishra', 'Yadav', 'Reddy', 'Nair',
-  'Mukherjee', 'Bhattacharya', 'Chauhan', 'Joshi', 'Kulkarni', 'Deshmukh', 'Mehra', 'Sengupta'
+  'Mukherjee', 'Bhattacharya', 'Chauhan', 'Joshi', 'Kulkarni', 'Deshmukh', 'Mehra', 'Sengupta',
+  'Saxena', 'Narang', 'Iyer', 'Khatri', 'Singhania', 'Rawat', 'Sethi', 'Hegde', 'Banerjee', 'Goswami'
 ];
 
 class PatientStore {
@@ -32,43 +34,50 @@ class PatientStore {
   }
 
   /**
-   * Calculates the Composite Priority Score for strict clinical ordering
+   * Computes an explicit 0-100 Clinical Severity Score
    * Formula:
-   * Rank Score = (1000 * ESI) - (500 * DeteriorationAlert) - (2 * WaitTime) - VitalRiskScore
-   * Lower score = Higher Priority (Rank #1 at the top)
+   * S = Base(ESI) + VitalRiskScore + DeteriorationBonus + WaitDecay
+   * ESI 1 -> 95-100 (Critical Resuscitation)
+   * ESI 2 -> 75-94  (Emergent)
+   * ESI 3 -> 45-74  (Urgent)
+   * ESI 4 -> 25-44  (Less Urgent)
+   * ESI 5 -> 5-24   (Non-Urgent)
    */
-  calculatePriorityScore(patient) {
+  calculateSeverityScore(patient) {
     const esi = Number(patient.currentESI) || 3;
-    const isAlert = patient.deteriorationAlert ? 1 : 0;
-    const wait = Number(patient.waitTimeMinutes) || 0;
     const vitalRisk = Number(patient.triageResult?.vitalCalib?.vitalRiskScore) || 0;
+    const isAlert = patient.deteriorationAlert ? 6 : 0;
+    const waitBonus = Math.min(6, Math.floor((Number(patient.waitTimeMinutes) || 0) / 6));
 
-    // Strict clinical priority index:
-    // ESI 1 (1000) always beats ESI 2 (2000), which always beats ESI 3 (3000)
-    return (1000 * esi) - (500 * isAlert) - (2 * wait) - vitalRisk;
+    let base = 50;
+    if (esi === 1) base = 94;
+    else if (esi === 2) base = 76;
+    else if (esi === 3) base = 50;
+    else if (esi === 4) base = 28;
+    else if (esi === 5) base = 10;
+
+    const total = base + Math.min(6, vitalRisk * 1.5) + isAlert + waitBonus;
+    return Math.min(100, Math.max(1, Math.round(total)));
   }
 
   /**
-   * Adds a new batch of random simulated patients additively to the queue
-   * Each batch draws randomly from the 20 clinical archetypes with realistic variations
+   * Adds 10 random simulated patients additively from the 50 clinical benchmark dataset
    */
   addRandomBatch(count = 10) {
-    console.log(`[PatientStore] Adding ${count} random patients to active queue (Current size: ${this.patients.length})...`);
+    console.log(`[PatientStore] Adding ${count} random patients to active queue (Current count: ${this.patients.length})...`);
     
-    // Shuffled copy of benchmark templates
-    const shuffledTemplates = [...BENCHMARK_PATIENTS].sort(() => 0.5 - Math.random());
+    // Pick from all 50 benchmark cases randomly
+    const shuffled = [...BENCHMARK_PATIENTS].sort(() => 0.5 - Math.random());
     const newArrivals = [];
 
     for (let i = 0; i < count; i++) {
       this.patientCounter += 1;
-      const template = shuffledTemplates[i % shuffledTemplates.length];
+      const template = shuffled[i % shuffled.length];
       
-      // Randomize name for uniqueness
       const randomFirst = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
       const randomLast = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
       const patientName = `${randomFirst} ${randomLast}`;
       
-      // Slightly jitter vitals around template
       const jitter = (val, delta = 2) => Math.max(1, Math.round(val + (Math.random() * delta * 2 - delta)));
       
       const jitteredVitals = {
@@ -85,7 +94,7 @@ class PatientStore {
         id: `PT-${this.patientCounter}`,
         name: patientName,
         vitals: jitteredVitals,
-        waitTimeMinutes: Math.floor(Math.random() * 15) // Random recent arrival (0 - 15 mins)
+        waitTimeMinutes: Math.floor(Math.random() * 15)
       };
 
       const triage = fallbackTriageReasoning(rawPatient);
@@ -128,13 +137,13 @@ class PatientStore {
         processedPatient.deteriorationReason = `SLA Exceeded: Waited ${processedPatient.waitTimeMinutes}m for ESI ${triage.esiLevel}`;
       }
 
+      processedPatient.severityScore = this.calculateSeverityScore(processedPatient);
       newArrivals.push(processedPatient);
     }
 
-    // Additively append to existing queue
+    // Add to existing list
     this.patients = [...this.patients, ...newArrivals];
 
-    // Asynchronously sync to MongoDB Atlas if connected
     if (mongoose.connection.readyState === 1) {
       for (const p of newArrivals) {
         PatientModel.findOneAndUpdate({ id: p.id }, p, { upsert: true, new: true }).catch((err) =>
@@ -152,7 +161,10 @@ class PatientStore {
   }
 
   getAllPatients(filter = {}) {
-    let result = [...this.patients];
+    let result = this.patients.map((p) => ({
+      ...p,
+      severityScore: this.calculateSeverityScore(p)
+    }));
 
     if (filter.search) {
       const q = filter.search.toLowerCase();
@@ -193,16 +205,15 @@ class PatientStore {
       result = result.filter((p) => !p.hasPriorHistory);
     }
 
-    // STRICT CLINICAL QUEUE SORTING:
-    // Sorts ALL patients strictly by severity score
-    // ESI 1 (Resuscitation) -> ESI 2 (Emergent) -> ESI 3 (Urgent) -> ESI 4 -> ESI 5
+    // STRICT SEVERITY SCORE DESCENDING ORDER:
+    // Highest severity score (e.g. 98, 95, 88, 85, 75, 60, 30, 15) comes FIRST!
     result.sort((a, b) => {
-      const scoreA = this.calculatePriorityScore(a);
-      const scoreB = this.calculatePriorityScore(b);
-      return scoreA - scoreB;
+      if (b.severityScore !== a.severityScore) {
+        return b.severityScore - a.severityScore;
+      }
+      return b.waitTimeMinutes - a.waitTimeMinutes;
     });
 
-    // Compute dynamic Estimated Time to Consultation (ETA) and Queue Position for each patient
     const activeDocCount = this.isSurgeMode ? 4 : this.activeDoctors;
     const avgConsult = this.avgConsultMinutes;
 
@@ -211,7 +222,7 @@ class PatientStore {
       let etaMinutes = 0;
       let etaLabel = 'Immediate';
 
-      if (Number(p.currentESI) === 1) {
+      if (Number(p.currentESI) === 1 || p.severityScore >= 90) {
         etaMinutes = 0;
         etaLabel = 'Immediate (Resus Bay)';
       } else {
@@ -262,9 +273,9 @@ class PatientStore {
       ]
     };
 
+    newPatient.severityScore = this.calculateSeverityScore(newPatient);
     this.patients.unshift(newPatient);
 
-    // Sync to MongoDB Atlas
     if (mongoose.connection.readyState === 1) {
       PatientModel.create(newPatient).catch((err) =>
         console.warn('[PatientStore] MongoDB patient create notice:', err.message)
@@ -303,6 +314,8 @@ class PatientStore {
 
     patient.maxSafeWaitMinutes =
       patient.currentESI === 1 ? 0 : patient.currentESI === 2 ? 10 : patient.currentESI === 3 ? 30 : 60;
+
+    patient.severityScore = this.calculateSeverityScore(patient);
 
     patient.historyLog.push({
       timestamp: new Date().toISOString(),
@@ -347,6 +360,8 @@ class PatientStore {
       patient.deteriorationReason = `Vitals Deterioration Detected: Re-triaged from ESI ${oldESI} to ESI ${newTriage.esiLevel} (${newTriage.vitalCalib.anomalies.map((a) => a.parameter).join(', ')})`;
     }
 
+    patient.severityScore = this.calculateSeverityScore(patient);
+
     patient.historyLog.push({
       timestamp: new Date().toISOString(),
       action: 'VITALS_RECHECK',
@@ -381,6 +396,7 @@ class PatientStore {
           p.deteriorationAlert = true;
           p.deteriorationReason = `SLA Exceeded: Patient has waited ${p.waitTimeMinutes}m (Max safe wait: ${p.maxSafeWaitMinutes}m for ESI ${p.currentESI}). Immediate nurse re-assessment required.`;
         }
+        p.severityScore = this.calculateSeverityScore(p);
       }
     });
 

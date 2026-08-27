@@ -17,7 +17,8 @@ import {
   Sparkles,
   RotateCcw,
   CheckCircle2,
-  Hourglass
+  Hourglass,
+  Activity
 } from 'lucide-react';
 
 export default function QueueDashboard({
@@ -45,6 +46,7 @@ export default function QueueDashboard({
     { id: 'deterioration', label: 'Deterioration SLAs', alert: true }
   ];
 
+  // Helper for ESI badge colors
   const getESIBadge = (level) => {
     switch (Number(level)) {
       case 1:
@@ -94,6 +96,48 @@ export default function QueueDashboard({
     if (a >= 65) return { label: 'Geriatric', color: 'bg-amber-950/60 text-amber-300 border-amber-850' };
     return { label: 'Adult', color: 'bg-slate-850 text-slate-300 border-slate-750' };
   };
+
+  const getSeverityPill = (score, esi) => {
+    const s = Number(score) || (esi === 1 ? 96 : esi === 2 ? 82 : esi === 3 ? 55 : esi === 4 ? 30 : 12);
+    if (s >= 90) {
+      return {
+        bg: 'bg-rose-950 text-rose-300 border-rose-700 ring-1 ring-rose-600/50 font-bold',
+        label: `${s}/100 Critical`
+      };
+    }
+    if (s >= 75) {
+      return {
+        bg: 'bg-orange-950 text-orange-300 border-orange-700 font-bold',
+        label: `${s}/100 Emergent`
+      };
+    }
+    if (s >= 45) {
+      return {
+        bg: 'bg-amber-950 text-amber-300 border-amber-700 font-medium',
+        label: `${s}/100 Urgent`
+      };
+    }
+    if (s >= 25) {
+      return {
+        bg: 'bg-emerald-950 text-emerald-300 border-emerald-800 font-medium',
+        label: `${s}/100 Low Risk`
+      };
+    }
+    return {
+      bg: 'bg-sky-950 text-sky-300 border-sky-800 font-medium',
+      label: `${s}/100 Minimal`
+    };
+  };
+
+  // Ensure strict descending order by severity score
+  const sortedPatients = [...patients].sort((a, b) => {
+    const scoreA = Number(a.severityScore) || (a.currentESI === 1 ? 96 : a.currentESI === 2 ? 82 : a.currentESI === 3 ? 55 : 20);
+    const scoreB = Number(b.severityScore) || (b.currentESI === 1 ? 96 : b.currentESI === 2 ? 82 : b.currentESI === 3 ? 55 : 20);
+    if (scoreB !== scoreA) {
+      return scoreB - scoreA;
+    }
+    return (b.waitTimeMinutes || 0) - (a.waitTimeMinutes || 0);
+  });
 
   return (
     <div className="bg-slate-900/90 border border-slate-800 rounded-lg shadow-sm overflow-hidden">
@@ -168,14 +212,14 @@ export default function QueueDashboard({
       )}
 
       {/* Patient Queue Content */}
-      {patients.length === 0 ? (
+      {sortedPatients.length === 0 ? (
         <div className="py-16 px-4 text-center max-w-md mx-auto">
           <div className="h-12 w-12 rounded-full bg-slate-850 border border-slate-750 flex items-center justify-center mx-auto mb-3 text-slate-400">
             <CheckCircle2 className="h-6 w-6 text-emerald-400" />
           </div>
           <h3 className="text-sm font-semibold text-slate-200">Triage Queue is Clear</h3>
           <p className="text-xs text-slate-400 mt-1 mb-5 leading-relaxed">
-            No patients currently waiting in emergency intake. You can manually intake a patient or add 10 more random arrivals.
+            No patients currently waiting in emergency intake. You can manually intake a patient or click <strong>+ Add 10 More Patients</strong> to simulate batch arrivals.
           </p>
           <div className="flex items-center justify-center space-x-3">
             <button
@@ -204,6 +248,7 @@ export default function QueueDashboard({
                 <th className="py-2.5 px-3 text-center w-12">Rank #</th>
                 <th className="py-2.5 px-3">Patient & ID</th>
                 <th className="py-2.5 px-3">Age / Cohort</th>
+                <th className="py-2.5 px-3">Severity Score</th>
                 <th className="py-2.5 px-3">Chief Complaint & Presentation</th>
                 <th className="py-2.5 px-3">Calibrated Vitals</th>
                 <th className="py-2.5 px-3">Triage Priority (ESI)</th>
@@ -212,14 +257,15 @@ export default function QueueDashboard({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 text-xs">
-              {patients.map((patient, index) => {
+              {sortedPatients.map((patient, index) => {
                 const esiInfo = getESIBadge(patient.currentESI);
                 const cohortTag = getAgeCohortTag(patient.age);
                 const triage = patient.triageResult || {};
                 const isOverridden = patient.isOverridden;
                 const hasDeterioration = patient.deteriorationAlert;
                 const wasEscalated = triage.wasEscalated;
-                const queueNum = patient.queuePosition || index + 1;
+                const queueNum = index + 1;
+                const severityPill = getSeverityPill(patient.severityScore, patient.currentESI);
 
                 return (
                   <tr
@@ -287,7 +333,19 @@ export default function QueueDashboard({
                       </div>
                     </td>
 
-                    {/* 3. Chief Complaint */}
+                    {/* 3. Severity Score Column */}
+                    <td className="py-2.5 px-3">
+                      <div className="font-mono">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] border ${severityPill.bg}`}
+                        >
+                          <Activity className="h-3 w-3 mr-1 opacity-70" />
+                          {severityPill.label}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* 4. Chief Complaint */}
                     <td className="py-2.5 px-3 max-w-xs">
                       <div className="text-slate-200 line-clamp-2 leading-relaxed text-[11.5px]">
                         {patient.chiefComplaint}
@@ -302,7 +360,7 @@ export default function QueueDashboard({
                       )}
                     </td>
 
-                    {/* 4. Calibrated Vitals Telemetry */}
+                    {/* 5. Calibrated Vitals Telemetry */}
                     <td className="py-2.5 px-3">
                       <div className="font-mono text-[10.5px] space-y-0.5">
                         <div className="flex items-center space-x-2">
@@ -350,7 +408,7 @@ export default function QueueDashboard({
                       </div>
                     </td>
 
-                    {/* 5. Triage Priority (ESI) */}
+                    {/* 6. Triage Priority (ESI) */}
                     <td className="py-2.5 px-3">
                       <div>
                         <div
@@ -393,7 +451,7 @@ export default function QueueDashboard({
                       </div>
                     </td>
 
-                    {/* 6. Wait Time & Estimated Consultation (ETA) */}
+                    {/* 7. Wait Time & Estimated Consultation (ETA) */}
                     <td className="py-2.5 px-3">
                       <div>
                         <div className="flex items-center space-x-1 font-mono text-[11px]">
@@ -425,7 +483,7 @@ export default function QueueDashboard({
                       </div>
                     </td>
 
-                    {/* 7. Clinical Actions */}
+                    {/* 8. Clinical Actions */}
                     <td className="py-2.5 px-3 text-right">
                       <div className="flex items-center justify-end space-x-1">
                         <button

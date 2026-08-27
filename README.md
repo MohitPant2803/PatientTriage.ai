@@ -109,27 +109,45 @@ To account for zero-history patients and unrecorded vitals:
 $$U = \min\left(100,\, P_{\text{missing\_vitals}} + P_{\text{zero\_history}}(15\%) + P_{\text{ambiguity}}\right)$$
 $$\text{If } U \ge 35\% \text{ and Raw ESI} = 3 \implies \text{Escalate to ESI 2 (Fail-Safe)}$$
 
-### Step 4: Strict Composite Queue Urgency Score ($Q_{\text{rank}}$)
-To arrange all active arrivals strictly by clinical severity in the live queue:
-$$Q_{\text{rank}} = (1000 \times \text{ESI}) - (500 \times \mathbb{I}_{\text{DeteriorationAlert}}) - (2 \times T_{\text{waited}}) - S_{\text{physio}}$$
+### Step 4: Explicit 0-100 Clinical Severity Score ($S_{\text{severity}}$)
+Each patient is assigned a normalized 0-100 Severity Score:
+$$S_{\text{severity}} = \text{Base}(\text{ESI}) + \min(6, 1.5 \times S_{\text{physio}}) + (6 \times \mathbb{I}_{\text{DeteriorationAlert}}) + \min\left(6, \lfloor T_{\text{waited}} / 6 \rfloor\right)$$
 
-- **Lowest $Q_{\text{rank}}$ is placed at Rank #1 (Top of Queue)**.
-- **Severity Hierarchy Guarantee**:
-  - ESI 1 (Resuscitation) $\approx 1000 \to$ **Always Ranks First (#1)**.
-  - ESI 2 (Emergent) $\approx 2000 \to$ **Ranks Ahead of ESI 3, 4, 5**.
-  - ESI 3 (Urgent) $\approx 3000 \to$ **Ranks Ahead of ESI 4, 5**.
-  - Within each tier, patients with active SLA breaches ($\mathbb{I} = 1$) or longer waiting duration ($T_{\text{waited}}$) automatically move ahead.
+- **ESI 1 (Resuscitation)**: $94 - 100$ (Critical Life Threat)
+- **ESI 2 (Emergent)**: $76 - 94$ (Emergent Intervention)
+- **ESI 3 (Urgent)**: $45 - 75$ (Urgent Hospital Care)
+- **ESI 4 (Less Urgent)**: $25 - 44$ (Ambulatory Fast-Track)
+- **ESI 5 (Non-Urgent)**: $5 - 24$ (Minimal Risk / Routine)
 
-### Step 5: Dynamic Estimated Time to Consultation (ETA)
+### Step 5: Strict Severity-Descending Queue Ordering
+The emergency queue is strictly ordered by **Severity Score descending**:
+$$\text{Patient}_A \succ \text{Patient}_B \iff S_{\text{severity}}(A) > S_{\text{severity}}(B)$$
+*Patients with higher severity scores always appear first at Rank #1, #2, etc. Within the same score tier, patients who have waited longer move up first.*
+
+### Step 6: Dynamic Estimated Time to Consultation (ETA)
 $$\text{ETA}(\text{Patient}_k) = \begin{cases} 
-\text{Immediate (Resus Bay)} & \text{if ESI} = 1 \\
-\max\left(0, \text{round}\left(\frac{(k - 1) \times T_{\text{avg\_consult}}}{N_{\text{active\_doctors}}}\right)\right) & \text{if ESI} \ge 2
+\text{Immediate (Resus Bay)} & \text{if ESI} = 1 \lor S_{\text{severity}} \ge 90 \\
+\max\left(0, \text{round}\left(\frac{(k - 1) \times T_{\text{avg\_consult}}}{N_{\text{active\_doctors}}}\right)\right) & \text{otherwise}
 \end{cases}$$
 Where $k$ is the patient's queue position, $T_{\text{avg\_consult}} = 12\text{ mins}$, and $N_{\text{active\_doctors}} = 3$ (or $4$ in surge mode).
 
 ---
 
-## 4. Technology Stack
+## 4. Benchmark Dataset & Patient Inflow
+
+The prototype includes **50 comprehensive, high-fidelity benchmark clinical patient cases** (`backend/data/simulatedPatients.js`) covering:
+- **Major Resuscitations**: Tension pneumothorax, hemorrhagic shock polytrauma, acute stroke, organophosphate poisoning, sedative overdose coma.
+- **High-Risk Emergent Cases**: Geriatric atypical MI, pediatric stridor, hypothermic sepsis, ruptured ectopic pregnancy, exertional heat stroke, snakebite envenomation.
+- **Urgent Cases**: Acute appendicitis, pyelonephritis, renal colic, pneumonia, Colles fracture, stable SVT.
+- **Ambulatory & Non-Urgent**: Ankle sprain, kitchen laceration, partial thickness burn, BPPV, routine medication refills.
+
+### Dynamic Patient Inflow:
+- **`+ Add 10 More Patients`**: Clicking this button randomly samples from the 50 clinical benchmark cases, generates realistic demographic names and vital jitter, and additively injects 10 arrivals into the queue. The queue instantly re-ranks all patients by severity score.
+- **Self-Intake**: Clinicians can also add their own custom patients at any time via the manual intake form or ambient voice dictation.
+
+---
+
+## 5. Technology Stack
 
 ### Backend
 - **Runtime**: Node.js (v18+)
@@ -146,13 +164,13 @@ Where $k$ is the patient's queue position, $T_{\text{avg\_consult}} = 12\text{ m
 
 ---
 
-## 5. Repository Structure
+## 6. Repository Structure
 
 ```
 PatientTriage.ai/
 ├── backend/
 │   ├── data/
-│   │   └── simulatedPatients.js      # 20 Diverse clinical benchmark test cases
+│   │   └── simulatedPatients.js      # 50 Diverse clinical benchmark test cases
 │   ├── models/
 │   │   ├── PatientModel.js           # Mongoose patient cloud persistence schema
 │   │   ├── AuditLogModel.js          # Mongoose immutable audit schema
@@ -178,7 +196,7 @@ PatientTriage.ai/
 │   │   ├── components/
 │   │   │   ├── Header.jsx            # Command center status, surge toggle, tabs
 │   │   │   ├── StatsOverview.jsx     # Real-time ED telemetry cards
-│   │   │   ├── QueueDashboard.jsx    # Live dynamic queue table, serial ranks & ETA
+│   │   │   ├── QueueDashboard.jsx    # Live dynamic queue table, severity scores & ETA
 │   │   │   ├── PatientIntakeModal.jsx # Rapid intake, voice parser & AI co-pilot modal
 │   │   │   ├── PatientDetailModal.jsx # Deep clinical telemetry & differential diagnosis
 │   │   │   ├── ClinicianOverrideModal.jsx # 1-Click override with DISHA audit signing
@@ -201,7 +219,7 @@ PatientTriage.ai/
 
 ---
 
-## 6. Getting Started
+## 7. Getting Started
 
 ### Prerequisites
 - Node.js (v18.0.0 or higher)
@@ -247,15 +265,15 @@ GEMINI_API_KEY=your_google_gemini_api_key_here
 
 ---
 
-## 7. Functional Walkthrough
+## 8. Functional Walkthrough
 
 1. **Live Emergency Department Command Center**:
-   - Real-time queue view sorted strictly by composite urgency ($Q_{\text{rank}}$) with explicit Queue Ranks (`#1, #2, ...`) and dynamic consultation ETAs.
+   - Real-time queue view sorted strictly by **Severity Score (0 - 100)** with explicit Queue Ranks (`#1, #2, ...`) and dynamic consultation ETAs.
    - Filter by specific clinical cohorts (*Pediatric, Geriatric, Zero-History, High Uncertainty, Overridden, or SLA Breached*).
-   - Use **`+ Add 10 More Patients`** to simulate random arriving cohorts that immediately self-sort into severity positions.
+   - Use **`+ Add 10 More Patients`** to additively inject random cohorts that immediately self-sort into severity positions.
 
 2. **Rapid Patient Intake & Voice Co-Pilot**:
-   - Allows nurses to enter patient vitals, chief complaints, and past medical history.
+   - Allows nurses to enter patient vitals, chief complaints, and past medical history manually.
    - Includes an ambient voice transcription parser that extracts clinical symptoms and vitals directly from speech dictation.
    - Generates real-time ESI scoring, confidence metrics, missing data penalties, and 3 targeted follow-up probing questions.
 
@@ -275,7 +293,7 @@ GEMINI_API_KEY=your_google_gemini_api_key_here
 
 ---
 
-## 8. Regulatory & Safety Compliance
+## 9. Regulatory & Safety Compliance
 
 - **Human-in-the-Loop Architecture**: AI acts strictly as an advisory layer. Every decision remains fully overridable by licensed medical staff.
 - **Ayushman Bharat Digital Mission (ABDM Level-2)**: Supports unique health ID (ABHA) resolution and tokenized health record hashing.
@@ -284,7 +302,7 @@ GEMINI_API_KEY=your_google_gemini_api_key_here
 
 ---
 
-## 9. Authors & Team Details
+## 10. Authors & Team Details
 
 **Team 404ers (IIT Kharagpur)**
 - **Mohit Pant** (Team Leader) — Mining Engineering (B.Tech + M.Tech, 2027)
