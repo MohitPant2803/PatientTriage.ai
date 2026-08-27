@@ -1,11 +1,13 @@
 /**
  * Patient Store & Dynamic Emergency Department Queue State Manager
- * Handles in-memory real-time state with automatic fallback if MongoDB is not connected.
+ * Handles in-memory real-time state with automatic sync to MongoDB Atlas when connected.
  */
 
+const mongoose = require('mongoose');
 const { BENCHMARK_PATIENTS } = require('../data/simulatedPatients');
 const { fallbackTriageReasoning, generateSBARNote } = require('../services/geminiService');
 const { logAuditEvent } = require('../services/auditService');
+const PatientModel = require('./PatientModel');
 
 class PatientStore {
   constructor() {
@@ -65,7 +67,23 @@ class PatientStore {
       nurseRole: 'Senior Triage Nurse'
     });
 
+    // Asynchronously sync seed patients to MongoDB Atlas if connected
+    this.syncSeedToMongoDB();
+
     console.log(`[PatientStore] Loaded ${this.patients.length} patients with active triage scoring.`);
+  }
+
+  async syncSeedToMongoDB() {
+    try {
+      if (mongoose.connection.readyState === 1) {
+        for (const p of this.patients) {
+          await PatientModel.findOneAndUpdate({ id: p.id }, p, { upsert: true, new: true });
+        }
+        console.log('[PatientStore] Benchmark patient records synced to MongoDB Atlas.');
+      }
+    } catch (err) {
+      console.warn('[PatientStore] MongoDB sync note:', err.message);
+    }
   }
 
   getAllPatients(filter = {}) {
@@ -160,6 +178,13 @@ class PatientStore {
 
     this.patients.unshift(newPatient);
 
+    // Sync to MongoDB Atlas
+    if (mongoose.connection.readyState === 1) {
+      PatientModel.create(newPatient).catch((err) =>
+        console.warn('[PatientStore] MongoDB patient create notice:', err.message)
+      );
+    }
+
     logAuditEvent({
       eventType: 'AI_TRIAGE_RECOMMENDED',
       patientId: newId,
@@ -200,6 +225,13 @@ class PatientStore {
       note: `Clinician manually overridden priority from ESI ${previousESI} to ESI ${overrideData.newESI}. Reason: ${overrideData.reason}`
     });
 
+    // Sync to MongoDB Atlas
+    if (mongoose.connection.readyState === 1) {
+      PatientModel.findOneAndUpdate({ id: patient.id }, patient).catch((err) =>
+        console.warn('[PatientStore] MongoDB override update notice:', err.message)
+      );
+    }
+
     // Log to ABDM / DISHA audit trail
     logAuditEvent({
       eventType: 'CLINICIAN_OVERRIDE',
@@ -238,6 +270,13 @@ class PatientStore {
       action: 'VITALS_RECHECK',
       note: `Updated vitals recorded. Triage re-evaluated: ESI ${newTriage.esiLevel}. ${worsened ? 'ALERT: Condition worsened!' : 'Condition stable.'}`
     });
+
+    // Sync to MongoDB Atlas
+    if (mongoose.connection.readyState === 1) {
+      PatientModel.findOneAndUpdate({ id: patient.id }, patient).catch((err) =>
+        console.warn('[PatientStore] MongoDB vitals update notice:', err.message)
+      );
+    }
 
     logAuditEvent({
       eventType: 'VITAL_REASSESSMENT_ALERT',

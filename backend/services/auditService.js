@@ -13,8 +13,10 @@
  */
 
 const crypto = require('crypto');
+const mongoose = require('mongoose');
+const AuditLogModel = require('../models/AuditLogModel');
 
-// In-Memory immutable log store
+// In-Memory immutable log store for sub-millisecond local reads
 const auditTrail = [];
 
 /**
@@ -83,6 +85,14 @@ function logAuditEvent({
   };
 
   auditTrail.unshift(logEntry);
+
+  // Asynchronous sync to MongoDB Atlas if connected
+  if (mongoose.connection.readyState === 1) {
+    AuditLogModel.create(logEntry).catch((err) =>
+      console.warn('[AuditService] MongoDB audit sync notice:', err.message)
+    );
+  }
+
   return logEntry;
 }
 
@@ -92,7 +102,7 @@ function logAuditEvent({
 function getAuditLogs({ limit = 50, eventType = null } = {}) {
   let filtered = [...auditTrail];
   if (eventType) {
-    filtered = filtered.filter(l => l.eventType === eventType);
+    filtered = filtered.filter((l) => l.eventType === eventType);
   }
   return filtered.slice(0, limit);
 }
