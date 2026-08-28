@@ -32,6 +32,54 @@ class PatientStore {
     this.surgeMultiplier = 1;
     this.activeDoctors = 3;
     this.avgConsultMinutes = 12;
+    this.initBenchmarkCohort(20);
+  }
+
+  initBenchmarkCohort(count = 20) {
+    this.patients = [];
+    this.patientCounter = 1000;
+    const initialCases = BENCHMARK_PATIENTS.slice(0, count);
+
+    for (const template of initialCases) {
+      this.patientCounter += 1;
+      const rawPatient = {
+        ...template,
+        id: template.id || `PT-${this.patientCounter}`,
+        waitTimeMinutes: template.waitTimeMinutes || Math.floor(Math.random() * 15)
+      };
+
+      const triage = fallbackTriageReasoning(rawPatient);
+      const sbar = generateSBARNote(rawPatient, triage);
+
+      const processedPatient = {
+        ...rawPatient,
+        triageResult: triage,
+        currentESI: triage.esiLevel,
+        sbarNote: sbar,
+        isOverridden: false,
+        overrideDetails: null,
+        maxSafeWaitMinutes:
+          triage.esiLevel === 1 ? 0 : triage.esiLevel === 2 ? 10 : triage.esiLevel === 3 ? 30 : 60,
+        deteriorationAlert:
+          rawPatient.waitTimeMinutes > (triage.esiLevel === 1 ? 0 : triage.esiLevel === 2 ? 10 : 30) &&
+          triage.esiLevel <= 2,
+        deteriorationReason: null,
+        historyLog: [
+          {
+            timestamp: new Date(Date.now() - (rawPatient.waitTimeMinutes || 0) * 60000).toISOString(),
+            action: 'INITIAL_TRIAGE',
+            note: `Patient admitted to triage queue as ESI ${triage.esiLevel}`
+          }
+        ]
+      };
+
+      if (processedPatient.deteriorationAlert) {
+        processedPatient.deteriorationReason = `SLA Exceeded: Waited ${processedPatient.waitTimeMinutes}m for ESI ${triage.esiLevel}`;
+      }
+
+      processedPatient.severityScore = this.calculateSeverityScore(processedPatient);
+      this.patients.push(processedPatient);
+    }
   }
 
   /**
@@ -238,6 +286,10 @@ class PatientStore {
   }
 
   getAllPatients(filter = {}) {
+    if (this.patients.length === 0 && !this._clearedManually) {
+      this.initBenchmarkCohort(20);
+    }
+
     let result = this.patients.map((p) => ({
       ...p,
       severityScore: this.calculateSeverityScore(p)

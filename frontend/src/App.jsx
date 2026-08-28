@@ -47,13 +47,16 @@ export default function App() {
         api.getStats()
       ]);
 
-      if (patientsRes.success) {
-        let fetched = patientsRes.patients || [];
+      if (patientsRes && patientsRes.success && Array.isArray(patientsRes.patients)) {
+        let fetched = patientsRes.patients;
         if (currentFilter === 'deterioration') {
           fetched = fetched.filter((p) => p.deteriorationAlert);
         }
         setPatients((prev) => {
-          // Check if data changed to avoid re-rendering DOM and losing scroll position
+          // Never wipe out active queue with a transient empty serverless cold-start response
+          if (fetched.length === 0 && prev.length > 0 && !params.search && currentFilter === 'all') {
+            return prev;
+          }
           const prevKey = prev.map((p) => `${p.id}-${p.currentESI}-${p.waitTimeMinutes}-${p.isOverridden}-${p.deteriorationAlert}`).join('|');
           const nextKey = fetched.map((p) => `${p.id}-${p.currentESI}-${p.waitTimeMinutes}-${p.isOverridden}-${p.deteriorationAlert}`).join('|');
           return prevKey === nextKey ? prev : fetched;
