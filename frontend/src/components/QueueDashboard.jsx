@@ -7,7 +7,6 @@ import {
   ShieldCheck,
   Zap,
   HelpCircle,
-  Plus,
   RotateCcw,
   CheckCircle2,
   SlidersHorizontal,
@@ -142,15 +141,14 @@ export default function QueueDashboard({
             className="px-3.5 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-900 text-xs font-bold border border-slate-300 transition-all duration-150 active:scale-[0.98] disabled:opacity-50 shadow-2xs"
             title="Simulate 10 more random patient arrivals"
           >
-            <span>{isLoadingSamples ? 'Adding...' : '+ Add 10 Patients'}</span>
+            <span>{isLoadingSamples ? 'Adding...' : 'Add 10 Patients'}</span>
           </button>
 
           <button
             onClick={onOpenIntakeModal}
-            className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-xs transition-all duration-150 active:scale-[0.98]"
+            className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-xs transition-all duration-150 active:scale-[0.98]"
           >
-            <Plus className="h-4 w-4 stroke-[2.8]" />
-            <span>+ Add Patient</span>
+            <span>Add Patient</span>
           </button>
 
           {patients.length > 0 && (
@@ -211,15 +209,14 @@ export default function QueueDashboard({
           </div>
           <h3 className="text-base font-bold text-slate-950">Triage Queue is Clear</h3>
           <p className="text-xs text-slate-700 mt-1 mb-5 leading-relaxed font-medium">
-            No patients currently waiting in emergency intake. You can manually intake a patient or click <strong>+ Add 10 Patients</strong> to simulate batch arrivals.
+            No patients currently waiting in emergency intake. You can manually intake a patient or click <strong>Add 10 Patients</strong> to simulate batch arrivals.
           </p>
           <div className="flex items-center justify-center space-x-3">
             <button
               onClick={onOpenIntakeModal}
-              className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-xs transition-all duration-150 active:scale-[0.98]"
+              className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-xs transition-all duration-150 active:scale-[0.98]"
             >
-              <Plus className="h-4 w-4 stroke-[2.8]" />
-              <span>+ Add Patient (Manual Intake)</span>
+              <span>Add Patient (Manual Intake)</span>
             </button>
 
             <button
@@ -227,7 +224,7 @@ export default function QueueDashboard({
               disabled={isLoadingSamples}
               className="px-4 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-900 text-xs font-bold border border-slate-300 transition-all duration-150 active:scale-[0.98] disabled:opacity-50 shadow-2xs"
             >
-              <span>{isLoadingSamples ? 'Adding...' : '+ Add 10 Patients'}</span>
+              <span>{isLoadingSamples ? 'Adding...' : 'Add 10 Patients'}</span>
             </button>
           </div>
         </div>

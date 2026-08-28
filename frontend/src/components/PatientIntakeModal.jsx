@@ -11,8 +11,7 @@ import {
   HelpCircle,
   Stethoscope,
   FileCheck,
-  Layers,
-  Plus
+  Layers
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -314,10 +313,9 @@ export default function PatientIntakeModal({
                 onLoadSamplePatients();
                 onClose();
               }}
-              className="flex items-center space-x-1.5 px-3 py-1 rounded-md bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 text-xs font-bold transition-all duration-150 active:scale-[0.98]"
+              className="px-3 py-1 rounded-md bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 text-xs font-bold transition-all duration-150 active:scale-[0.98]"
             >
-              <Plus className="h-3.5 w-3.5 text-amber-800 stroke-[2.4]" />
-              <span>+ Add 10 Sample Patients</span>
+              <span>Add 10 Sample Patients</span>
             </button>
           )}
         </div>
