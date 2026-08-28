@@ -66,17 +66,17 @@ export default function ClinicianOverrideModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-2xl w-full max-w-xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 overflow-y-auto">
+      <div className="bg-white border border-slate-300 rounded-2xl shadow-modal w-full max-w-xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
-          <div className="flex items-center space-x-2.5">
-            <div className="h-8 w-8 rounded-lg bg-purple-600 flex items-center justify-center text-white">
-              <SlidersHorizontal className="h-4 w-4" />
+        <div className="px-6 py-4 border-b border-slate-300 flex items-center justify-between bg-white">
+          <div className="flex items-center space-x-3">
+            <div className="h-8 w-8 rounded-lg bg-purple-600 flex items-center justify-center text-white shadow-xs">
+              <SlidersHorizontal className="h-4 w-4 stroke-[2.2]" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">Clinician Triage Override</h2>
-              <p className="text-xs text-slate-400">
+              <h2 className="text-base font-extrabold text-slate-950">Clinician Triage Override</h2>
+              <p className="text-xs text-slate-700 font-medium">
                 Human-in-the-Loop • DISHA / ABDM Tamper-Evident Audit Logging
               </p>
             </div>
@@ -84,129 +84,125 @@ export default function ClinicianOverrideModal({
 
           <button
             onClick={onClose}
-            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-700 hover:text-slate-950 hover:bg-slate-100 border border-slate-300 transition-colors"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5 stroke-[2.2]" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs bg-white">
           {/* Patient Overview */}
-          <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+          <div className="p-3.5 rounded-xl bg-white border border-slate-300 flex items-center justify-between shadow-2xs">
             <div>
-              <span className="font-semibold text-white text-sm">{patient.name}</span>
-              <div className="text-slate-400 text-[11px] font-mono">
+              <span className="font-extrabold text-slate-950 text-sm">{patient.name}</span>
+              <div className="text-slate-700 text-xs font-mono font-bold mt-0.5">
                 {patient.id} • {patient.age}y • {patient.gender}
               </div>
             </div>
+
             <div className="text-right">
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider block">AI Suggested</span>
-              <span className="font-bold text-sky-400 text-sm">ESI Level {patient.triageResult?.esiLevel || initialESI}</span>
+              <span className="text-xs text-slate-700 font-bold block">Current Priority</span>
+              <span className="inline-block mt-0.5 px-2 py-0.5 rounded-md bg-white text-slate-950 border border-slate-300 font-extrabold text-xs">
+                ESI {initialESI}
+              </span>
             </div>
           </div>
 
-          {/* New ESI Selector */}
+          {/* New ESI Select */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-200 uppercase tracking-wider mb-2">
-              Select Overridden ESI Priority Level *
+            <label className="block text-xs font-bold text-slate-800 mb-1.5">
+              Select Overridden ESI Level *
             </label>
-            <div className="grid grid-cols-5 gap-2 font-semibold text-center">
-              {[
-                { level: 1, label: 'Level 1', sub: 'Resus', color: 'hover:bg-rose-950 focus:ring-rose-500' },
-                { level: 2, label: 'Level 2', sub: 'Emergent', color: 'hover:bg-orange-950 focus:ring-orange-500' },
-                { level: 3, label: 'Level 3', sub: 'Urgent', color: 'hover:bg-amber-950 focus:ring-amber-500' },
-                { level: 4, label: 'Level 4', sub: 'Less Urgent', color: 'hover:bg-emerald-950 focus:ring-emerald-500' },
-                { level: 5, label: 'Level 5', sub: 'Non-Urgent', color: 'hover:bg-sky-950 focus:ring-sky-500' }
-              ].map((item) => (
+            <div className="grid grid-cols-5 gap-2 font-mono text-center">
+              {[1, 2, 3, 4, 5].map((lvl) => (
                 <button
-                  key={item.level}
+                  key={lvl}
                   type="button"
-                  onClick={() => setNewESI(item.level)}
-                  className={`p-2 rounded-lg border text-xs transition-all ${
-                    newESI === item.level
-                      ? 'bg-purple-600 text-white border-purple-500 shadow-md ring-2 ring-purple-400'
-                      : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800'
+                  onClick={() => setNewESI(lvl)}
+                  className={`py-2 rounded-lg border text-xs font-black transition-all ${
+                    newESI === lvl
+                      ? 'bg-purple-700 text-white border-purple-700 shadow-xs'
+                      : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  <div className="font-bold">{item.label}</div>
-                  <div className="text-[10px] opacity-80">{item.sub}</div>
+                  ESI {lvl}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Structured Clinical Justification Category */}
+          {/* Justification Category */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-200 uppercase tracking-wider mb-1">
-              Regulatory Justification Category (DISHA Mandated) *
+            <label className="block text-xs font-bold text-slate-800 mb-1">
+              Regulatory Justification Category *
             </label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2 rounded-md bg-slate-950 border border-slate-800 text-xs text-white focus:border-purple-500 focus:outline-none"
+              className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-xs font-medium text-slate-950 focus:border-purple-600 focus:ring-2 focus:ring-purple-500/20 focus:outline-none shadow-2xs"
             >
-              {JUSTIFICATION_CATEGORIES.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.label}
+              {JUSTIFICATION_CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Clinician Justification Note */}
+          {/* Detailed Clinical Justification Note */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-200 uppercase tracking-wider mb-1">
-              Clinical Assessment & Rationalization Note *
+            <label className="block text-xs font-bold text-slate-800 mb-1">
+              Mandatory Clinical Rationale (Tamper-evident audit logged) *
             </label>
             <textarea
               required
               rows={3}
-              placeholder="Detail the clinical observations, bedside cues, or risk factors leading to this override..."
+              placeholder="Detail clinician reasoning, exam findings, or specific risk factors..."
               value={reasonNotes}
               onChange={(e) => setReasonNotes(e.target.value)}
-              className="w-full px-3 py-2 rounded-md bg-slate-950 border border-slate-800 text-xs text-white focus:border-purple-500 focus:outline-none"
+              className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-xs font-medium text-slate-950 focus:border-purple-600 focus:ring-2 focus:ring-purple-500/20 focus:outline-none shadow-2xs"
             ></textarea>
           </div>
 
           {/* Clinician Signature / ID */}
-          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800">
+          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-200">
             <div>
-              <label className="block text-[11px] font-medium text-slate-400 mb-1">
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
                 Licensed Clinician Name & ID
               </label>
               <input
                 type="text"
                 value={nurseName}
                 onChange={(e) => setNurseName(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-md bg-slate-950 border border-slate-800 text-xs text-white"
+                className="w-full px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-900"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-medium text-slate-400 mb-1">
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
                 Digital Signature Token
               </label>
-              <div className="px-3 py-1.5 rounded-md bg-slate-950 border border-slate-800 text-xs text-purple-400 font-mono flex items-center justify-between">
+              <div className="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-purple-800 font-mono font-semibold flex items-center justify-between">
                 <span>SIG_ABDM_RN4042</span>
-                <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                <ShieldCheck className="h-4 w-4 text-emerald-600" />
               </div>
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end space-x-2 pt-3 border-t border-slate-800">
+          <div className="flex justify-end space-x-2.5 pt-3 border-t border-slate-200">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors"
+              className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center space-x-1.5 px-5 py-2 rounded-md bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/30 transition-all disabled:opacity-50"
+              className="flex items-center space-x-1.5 px-5 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-xs transition-all disabled:opacity-50"
             >
               <FileCheck className="h-4 w-4" />
               <span>{isSubmitting ? 'Recording Override...' : 'Confirm & Log Override'}</span>

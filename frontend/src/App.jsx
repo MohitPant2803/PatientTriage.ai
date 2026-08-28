@@ -112,19 +112,16 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans antialiased">
       {/* Top Clinical Header */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        isSurgeMode={isSurgeMode}
-        onToggleSurge={handleToggleSurge}
         alertCount={stats?.alertCount || 0}
-        onOpenIntakeModal={() => setIsIntakeOpen(true)}
       />
 
       {/* Main Clinical Workspace */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* Command Center Telemetry Bar */}
         <StatsOverview stats={stats} />
 
@@ -158,13 +155,21 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-850 bg-slate-925 py-3 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>PatientTriage.ai - Team 404ers (IIT Kharagpur)</span>
-          <span className="font-mono text-[11px] text-slate-400">
-            ABDM Level-2 • DISHA Act 2024 • HIPAA Clinical Decision Support
-          </span>
+      {/* Clinical Footer */}
+      <footer className="border-t border-slate-200 bg-white py-3.5 text-xs text-slate-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="flex items-center space-x-2 text-slate-800">
+            <span className="font-bold text-slate-900">PatientTriage.ai</span>
+            <span>•</span>
+            <span className="font-medium text-slate-700">Emergency Clinical Decision Support</span>
+          </div>
+          <div className="text-xs text-slate-700 font-semibold flex items-center space-x-2">
+            <span>ABDM Level-2</span>
+            <span>•</span>
+            <span>DISHA Act 2024</span>
+            <span>•</span>
+            <span>HIPAA 45 CFR § 164.312</span>
+          </div>
         </div>
       </footer>
 
@@ -181,6 +186,7 @@ export default function App() {
         isOpen={Boolean(selectedPatient)}
         onClose={() => setSelectedPatient(null)}
         onOpenOverride={(p) => setOverridePatient(p)}
+        onOpenVitalsRecheck={(p) => setVitalsRecheckPatient(p)}
         onOpenSbar={(p) => setSbarPatient(p)}
       />
 

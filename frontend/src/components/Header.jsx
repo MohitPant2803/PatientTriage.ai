@@ -1,25 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import {
   Activity,
-  ShieldCheck,
-  AlertTriangle,
-  Flame,
-  UserCheck,
-  Building2,
-  Clock,
   Layers,
-  FileText,
+  ShieldCheck,
   Radio,
-  Plus
+  Clock,
+  AlertTriangle,
+  UserCheck
 } from 'lucide-react';
 
 export default function Header({
   activeTab,
   setActiveTab,
-  isSurgeMode,
-  onToggleSurge,
-  alertCount,
-  onOpenIntakeModal
+  alertCount
 }) {
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -29,128 +22,108 @@ export default function Header({
   }, []);
 
   return (
-    <header className="border-b border-slate-800/90 bg-slate-950/95 backdrop-blur sticky top-0 z-40">
+    <header className="border-b border-slate-300 bg-white sticky top-0 z-40 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Station Navigation Bar */}
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           {/* Clinical Brand & Identity */}
-          <div className="flex items-center space-x-3.5">
-            <div className="h-9 w-9 rounded-lg bg-sky-600 flex items-center justify-center text-white shadow-md shadow-sky-600/20">
-              <Activity className="h-5 w-5 stroke-[2.2]" />
+          <div className="flex items-center space-x-4">
+            <div className="h-12 w-12 rounded-xl bg-sky-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
+              <Activity className="h-7 w-7 stroke-[2.5]" />
             </div>
             <div>
-              <div className="flex items-center space-x-2">
-                <span className="font-bold text-base tracking-tight text-white">PatientTriage.ai</span>
-                <span className="text-[10px] font-mono font-semibold uppercase px-1.5 py-0.5 rounded bg-sky-950/80 text-sky-400 border border-sky-800/60">
-                  CDS v2.0
+              <div className="flex items-center flex-wrap gap-x-2.5 gap-y-1">
+                <span className="font-black text-xl sm:text-2xl tracking-tight text-slate-950">
+                  PatientTriage<span className="text-sky-600">.ai</span>
                 </span>
-                <span className="text-[11px] text-slate-400 hidden lg:inline font-mono">
-                  Level 1 Trauma ED
+                <span className="text-slate-400 font-bold text-base">•</span>
+                <span className="text-sm sm:text-base font-extrabold text-slate-950">
+                  Emergency Department
+                </span>
+                <span className="text-xs font-mono uppercase px-2 py-0.5 rounded-md bg-white text-slate-950 border border-slate-300 font-black shadow-2xs">
+                  Level 1 Trauma
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 hidden sm:block">
-                Emergency Decision Support - <span className="text-slate-300 font-medium">AI Guides. Professional Decides.</span>
+              <p className="text-xs sm:text-sm text-slate-700 font-semibold mt-0.5">
+                Clinical Decision Support System
               </p>
             </div>
           </div>
 
-          {/* Real-Time Telemetry & Status Badges */}
-          <div className="flex items-center space-x-2.5 sm:space-x-3">
+          {/* Context & Critical Status Actions */}
+          <div className="flex items-center space-x-3.5">
             {/* Live Station Clock */}
-            <div className="hidden xl:flex items-center space-x-1.5 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-300">
-              <Clock className="h-3.5 w-3.5 text-slate-400" />
-              <span>{currentTime.toLocaleTimeString('en-US', { hour12: false })} IST</span>
+            <div className="hidden xl:flex items-center space-x-2 px-3.5 py-2 rounded-lg bg-white border border-slate-300 text-sm font-mono text-slate-950 font-bold shadow-2xs">
+              <Clock className="h-4 w-4 text-slate-800 stroke-[2.3]" />
+              <span className="tabular-nums font-extrabold">{currentTime.toLocaleTimeString('en-US', { hour12: false })} IST</span>
             </div>
 
-            {/* ABDM Connectivity Indicator */}
-            <div className="hidden md:flex items-center space-x-1.5 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-xs text-slate-300">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="font-mono text-[11px]">ABDM: ONLINE</span>
+            {/* ABDM Status */}
+            <div className="hidden md:flex items-center space-x-2 px-3.5 py-2 rounded-lg bg-emerald-50 border border-emerald-300 text-xs sm:text-sm text-emerald-950 font-extrabold shadow-2xs">
+              <ShieldCheck className="h-4 w-4 text-emerald-700 stroke-[2.3]" />
+              <span>ABDM Connected</span>
             </div>
 
-            {/* Deterioration Alert Counter */}
+            {/* SLA Alert Counter */}
             {alertCount > 0 && (
-              <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded bg-rose-950/80 border border-rose-700/80 text-xs text-rose-300 animate-pulse-subtle">
-                <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
-                <span className="font-semibold">{alertCount} SLA Alert{alertCount > 1 ? 's' : ''}</span>
+              <div className="flex items-center space-x-2 px-3.5 py-2 rounded-lg bg-rose-100 border border-rose-400 text-xs sm:text-sm text-rose-950 font-black shadow-2xs">
+                <AlertTriangle className="h-4.5 w-4.5 text-rose-700 stroke-[2.4]" />
+                <span>{alertCount} SLA Alert{alertCount > 1 ? 's' : ''}</span>
               </div>
             )}
 
-            {/* Interactive Surge Mode Toggle */}
-            <button
-              onClick={() => onToggleSurge(!isSurgeMode)}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 active:scale-[0.98] ${
-                isSurgeMode
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30 ring-1 ring-amber-500/40'
-                  : 'bg-slate-900 text-slate-300 border border-slate-800 hover:bg-slate-850 hover:border-slate-700'
-              }`}
-              title="Toggle simulated 3x patient inflow surge"
-            >
-              <Flame className={`h-3.5 w-3.5 ${isSurgeMode ? 'text-amber-400 animate-pulse' : 'text-slate-400'}`} />
-              <span>{isSurgeMode ? 'Surge: 3x ACTIVE' : 'Surge: Normal (1x)'}</span>
-            </button>
-
             {/* Clinician Profile */}
-            <div className="hidden lg:flex items-center space-x-2 pl-2 border-l border-slate-800">
-              <div className="h-7 w-7 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300">
-                <UserCheck className="h-3.5 w-3.5 text-sky-400" />
+            <div className="flex items-center space-x-3 pl-3.5 border-l-2 border-slate-300">
+              <div className="h-10 w-10 rounded-full bg-sky-600 flex items-center justify-center text-white font-black text-sm shadow-xs flex-shrink-0">
+                PS
               </div>
-              <div className="text-left text-xs">
-                <div className="font-medium text-slate-200 text-[11px]">Nurse P. Sharma, RN</div>
-                <div className="text-[10px] text-slate-400">Lead Triage Clinician</div>
+              <div className="text-left hidden sm:block">
+                <div className="font-extrabold text-slate-950 text-sm leading-tight">Nurse P. Sharma, RN</div>
+                <div className="text-xs text-slate-700 font-semibold mt-0.5">Lead Triage Clinician</div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Tab Navigation & Rapid Action Bar */}
-        <div className="flex items-center justify-between border-t border-slate-850 pt-2 pb-2">
-          <nav className="flex space-x-1">
+        {/* Tab Navigation */}
+        <div className="flex items-center justify-between border-t border-slate-200 pt-2.5 pb-2.5">
+          <nav className="flex space-x-2.5">
             <button
               onClick={() => setActiveTab('queue')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all duration-150 active:scale-[0.98] ${
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-150 active:scale-[0.98] ${
                 activeTab === 'queue'
-                  ? 'bg-slate-850 text-sky-400 border border-slate-750 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  ? 'bg-sky-700 text-white shadow-xs'
+                  : 'text-slate-800 bg-white hover:bg-slate-100 border border-slate-300'
               }`}
             >
-              <Layers className="h-3.5 w-3.5" />
+              <Layers className="h-4 w-4" />
               <span>Live Emergency Queue</span>
             </button>
 
             <button
               onClick={() => setActiveTab('audit')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all duration-150 active:scale-[0.98] ${
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-150 active:scale-[0.98] ${
                 activeTab === 'audit'
-                  ? 'bg-slate-850 text-sky-400 border border-slate-750 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  ? 'bg-sky-700 text-white shadow-xs'
+                  : 'text-slate-800 bg-white hover:bg-slate-100 border border-slate-300'
               }`}
             >
-              <ShieldCheck className="h-3.5 w-3.5" />
+              <ShieldCheck className="h-4 w-4" />
               <span>ABDM / DISHA Audit Trail</span>
             </button>
 
             <button
               onClick={() => setActiveTab('simulation')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all duration-150 active:scale-[0.98] ${
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-150 active:scale-[0.98] ${
                 activeTab === 'simulation'
-                  ? 'bg-slate-850 text-sky-400 border border-slate-750 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  ? 'bg-sky-700 text-white shadow-xs'
+                  : 'text-slate-800 bg-white hover:bg-slate-100 border border-slate-300'
               }`}
             >
-              <Radio className="h-3.5 w-3.5" />
-              <span>Surge & Time Simulation</span>
+              <Radio className="h-4 w-4" />
+              <span>Surge & Capacity Simulation</span>
             </button>
           </nav>
-
-          {/* Rapid Patient Intake Button */}
-          <button
-            onClick={onOpenIntakeModal}
-            className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold shadow-md shadow-sky-600/20 transition-all duration-150 active:scale-[0.98]"
-          >
-            <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
-            <span>Rapid Patient Intake</span>
-          </button>
         </div>
       </div>
     </header>

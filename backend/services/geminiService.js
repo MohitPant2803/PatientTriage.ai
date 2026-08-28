@@ -127,7 +127,7 @@ async function analyzePatientTriage(patientData) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
 
     const prompt = `
 You are an expert Emergency Medicine Physician Co-Pilot assisting a triage nurse under severe time pressure.

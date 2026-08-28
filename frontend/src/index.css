@@ -4,54 +4,39 @@
 
 @layer base {
   html {
-    color-scheme: dark;
+    color-scheme: light;
   }
   body {
-    @apply bg-slate-950 text-slate-100 font-sans text-sm antialiased;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    @apply bg-white text-slate-900 font-sans text-sm antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
   }
+}
+
+/* Tabular lining figures for clinical metrics */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Custom clinical scrollbars */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #040711;
+  background: #ffffff;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #cbd5e1;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #94a3b8;
 }
 
 /* Tactile interactive state class */
 .btn-tactile {
-  @apply transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-1 focus:ring-sky-500/50;
-}
-
-/* Medical ECG / Pulse subtle animation */
-@keyframes pulse-subtle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.55; }
-}
-
-.animate-pulse-subtle {
-  animation: pulse-subtle 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-}
-
-/* SLA breach flash */
-@keyframes alert-glow {
-  0%, 100% { border-color: rgba(225, 29, 72, 0.4); }
-  50% { border-color: rgba(225, 29, 72, 0.9); box-shadow: 0 0 12px rgba(225, 29, 72, 0.25); }
-}
-
-.animate-alert-glow {
-  animation: alert-glow 1.8s ease-in-out infinite;
+  @apply transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-sky-500/30;
 }

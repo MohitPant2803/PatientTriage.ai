@@ -4,21 +4,18 @@ import {
   Filter,
   AlertTriangle,
   Clock,
-  Eye,
-  SlidersHorizontal,
-  HeartPulse,
-  FileSpreadsheet,
-  Baby,
-  User,
   ShieldCheck,
   Zap,
   HelpCircle,
   Plus,
-  Sparkles,
   RotateCcw,
   CheckCircle2,
-  Hourglass,
-  Activity
+  SlidersHorizontal,
+  Baby,
+  User,
+  HeartPulse,
+  FileSpreadsheet,
+  ArrowRight
 } from 'lucide-react';
 
 export default function QueueDashboard({
@@ -36,98 +33,68 @@ export default function QueueDashboard({
   onClearQueue,
   isLoadingSamples
 }) {
-  const filterTabs = [
-    { id: 'all', label: 'All Cases' },
-    { id: 'pediatric', label: 'Pediatric (<12y)', icon: Baby },
-    { id: 'geriatric', label: 'Geriatric (65+y)', icon: User },
-    { id: 'zero-history', label: 'Zero-History' },
-    { id: 'high-uncertainty', label: 'High Uncertainty' },
-    { id: 'overridden', label: 'Overridden' },
-    { id: 'deterioration', label: 'Deterioration SLAs', alert: true }
-  ];
-
-  // Helper for ESI badge colors
-  const getESIBadge = (level) => {
+  // ESI semantic styling (Symbol + Label + Urgent Text + Border Rail)
+  const getESIInfo = (level) => {
     switch (Number(level)) {
       case 1:
         return {
-          bg: 'bg-rose-950/80 text-rose-300 border-rose-700/80 ring-1 ring-rose-600/40',
-          label: 'ESI 1: Resuscitation',
-          text: 'Immediate'
+          badge: 'bg-rose-100 text-rose-950 border-rose-400 font-extrabold',
+          symbol: '!',
+          title: 'ESI 1',
+          sub: 'Immediate',
+          railColor: 'border-l-rose-600'
         };
       case 2:
         return {
-          bg: 'bg-orange-950/80 text-orange-300 border-orange-700/80',
-          label: 'ESI 2: Emergent',
-          text: '≤ 10 min'
+          badge: 'bg-amber-100 text-amber-950 border-amber-400 font-bold',
+          symbol: '▲',
+          title: 'ESI 2',
+          sub: 'Emergent',
+          railColor: 'border-l-amber-500'
         };
       case 3:
         return {
-          bg: 'bg-amber-950/80 text-amber-300 border-amber-700/80',
-          label: 'ESI 3: Urgent',
-          text: '≤ 30 min'
+          badge: 'bg-yellow-100 text-yellow-950 border-yellow-400 font-bold',
+          symbol: '◆',
+          title: 'ESI 3',
+          sub: 'Urgent',
+          railColor: 'border-l-yellow-500'
         };
       case 4:
         return {
-          bg: 'bg-emerald-950/80 text-emerald-300 border-emerald-700/80',
-          label: 'ESI 4: Less Urgent',
-          text: '≤ 60 min'
+          badge: 'bg-emerald-100 text-emerald-950 border-emerald-400 font-bold',
+          symbol: '●',
+          title: 'ESI 4',
+          sub: 'Less Urgent',
+          railColor: 'border-l-emerald-600'
         };
       case 5:
         return {
-          bg: 'bg-sky-950/80 text-sky-300 border-sky-700/80',
-          label: 'ESI 5: Non-Urgent',
-          text: '≤ 120 min'
+          badge: 'bg-white text-slate-900 border-slate-300 font-semibold',
+          symbol: '○',
+          title: 'ESI 5',
+          sub: 'Non-Urgent',
+          railColor: 'border-l-slate-400'
         };
       default:
         return {
-          bg: 'bg-slate-800 text-slate-300 border-slate-700',
-          label: `ESI ${level}`,
-          text: 'Standard'
+          badge: 'bg-white text-slate-900 border-slate-300',
+          symbol: '•',
+          title: `ESI ${level}`,
+          sub: 'Standard',
+          railColor: 'border-l-slate-400'
         };
     }
   };
 
-  const getAgeCohortTag = (age) => {
-    const a = Number(age);
-    if (a <= 1) return { label: 'Infant', color: 'bg-purple-950/60 text-purple-300 border-purple-850' };
-    if (a <= 5) return { label: 'Toddler', color: 'bg-indigo-950/60 text-indigo-300 border-indigo-850' };
-    if (a <= 12) return { label: 'Child', color: 'bg-blue-950/60 text-blue-300 border-blue-850' };
-    if (a >= 65) return { label: 'Geriatric', color: 'bg-amber-950/60 text-amber-300 border-amber-850' };
-    return { label: 'Adult', color: 'bg-slate-850 text-slate-300 border-slate-750' };
-  };
-
-  const getSeverityPill = (score, esi) => {
-    const s = Number(score) || (esi === 1 ? 96 : esi === 2 ? 82 : esi === 3 ? 55 : esi === 4 ? 30 : 12);
-    if (s >= 90) {
-      return {
-        bg: 'bg-rose-950 text-rose-300 border-rose-700 ring-1 ring-rose-600/50 font-bold',
-        label: `${s}/100 Critical`
-      };
-    }
-    if (s >= 75) {
-      return {
-        bg: 'bg-orange-950 text-orange-300 border-orange-700 font-bold',
-        label: `${s}/100 Emergent`
-      };
-    }
-    if (s >= 45) {
-      return {
-        bg: 'bg-amber-950 text-amber-300 border-amber-700 font-medium',
-        label: `${s}/100 Urgent`
-      };
-    }
-    if (s >= 25) {
-      return {
-        bg: 'bg-emerald-950 text-emerald-300 border-emerald-800 font-medium',
-        label: `${s}/100 Low Risk`
-      };
-    }
-    return {
-      bg: 'bg-sky-950 text-sky-300 border-sky-800 font-medium',
-      label: `${s}/100 Minimal`
-    };
-  };
+  const filterTabs = [
+    { id: 'all', label: 'All Cases' },
+    { id: 'critical', label: 'Critical & Alerts', alert: true },
+    { id: 'pediatric', label: 'Pediatric (<12y)', icon: Baby },
+    { id: 'geriatric', label: 'Geriatric (65+y)', icon: User },
+    { id: 'zero-history', label: 'Zero-History' },
+    { id: 'overridden', label: 'Overridden' }
+  ];
 
   // Ensure strict descending order by severity score
   const sortedPatients = [...patients].sort((a, b) => {
@@ -139,49 +106,53 @@ export default function QueueDashboard({
     return (b.waitTimeMinutes || 0) - (a.waitTimeMinutes || 0);
   });
 
+  const criticalCount = sortedPatients.filter(
+    (p) => p.currentESI <= 2 || p.deteriorationAlert
+  ).length;
+
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-lg shadow-sm overflow-hidden">
+    <div className="bg-white border border-slate-300 rounded-xl shadow-xs overflow-hidden">
       {/* Search & Action Bar */}
-      <div className="p-3.5 border-b border-slate-800 flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-slate-925">
+      <div className="p-4 sm:p-5 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-white">
+        
         {/* Search Input */}
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-600" />
           <input
             type="text"
-            placeholder="Search patient name, ID, symptoms..."
+            placeholder="Search patient name, ID, symptoms, or complaint..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 rounded bg-slate-950 border border-slate-800 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 font-sans"
+            className="w-full pl-10 pr-3.5 py-2 rounded-lg bg-white border border-slate-300 text-xs font-medium text-slate-950 placeholder-slate-500 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/20 font-sans transition-all shadow-2xs"
           />
         </div>
 
         {/* Action Buttons: Add Patient & Add 10 More Patients */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2.5">
           <button
             onClick={onLoadSamplePatients}
             disabled={isLoadingSamples}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-medium border border-slate-700 transition-all duration-150 active:scale-[0.98] disabled:opacity-50"
-            title="Add 10 more random patient arrivals into the severity-ranked queue"
+            className="px-3.5 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-900 text-xs font-bold border border-slate-300 transition-all duration-150 active:scale-[0.98] disabled:opacity-50 shadow-2xs"
+            title="Simulate 10 more random patient arrivals"
           >
-            <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-            <span>{isLoadingSamples ? 'Adding Patients...' : '+ Add 10 More Patients'}</span>
+            <span>{isLoadingSamples ? 'Adding...' : '+ Add 10 Patients'}</span>
           </button>
 
           <button
             onClick={onOpenIntakeModal}
-            className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold shadow-sm transition-all duration-150 active:scale-[0.98]"
+            className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-xs transition-all duration-150 active:scale-[0.98]"
           >
-            <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+            <Plus className="h-4 w-4 stroke-[2.8]" />
             <span>+ Add Patient</span>
           </button>
 
           {patients.length > 0 && (
             <button
               onClick={onClearQueue}
-              className="p-1.5 rounded text-slate-400 hover:text-rose-300 hover:bg-rose-950/40 border border-transparent hover:border-rose-800 transition-colors"
+              className="p-2 rounded-lg text-slate-700 hover:text-rose-700 hover:bg-rose-50 border border-slate-300 hover:border-rose-300 transition-colors shadow-2xs"
               title="Clear active queue"
             >
-              <RotateCcw className="h-3.5 w-3.5" />
+              <RotateCcw className="h-4 w-4 stroke-[2.2]" />
             </button>
           )}
         </div>
@@ -189,54 +160,67 @@ export default function QueueDashboard({
 
       {/* Cohort Filter Tabs */}
       {patients.length > 0 && (
-        <div className="px-3.5 py-2 border-b border-slate-800/80 bg-slate-950/40 flex items-center space-x-1.5 overflow-x-auto">
-          <Filter className="h-3 w-3 text-slate-400 mr-1 flex-shrink-0" />
-          {filterTabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setFilter(tab.id)}
-              className={`flex items-center space-x-1 px-2.5 py-1 rounded text-[11.5px] font-medium whitespace-nowrap transition-all duration-150 active:scale-[0.98] ${
-                currentFilter === tab.id
-                  ? 'bg-sky-600 text-white shadow-sm'
-                  : 'bg-slate-850 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-750'
-              }`}
-            >
-              {tab.icon && <tab.icon className="h-3 w-3" />}
-              <span>{tab.label}</span>
-              {tab.alert && (
-                <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-ping ml-0.5"></span>
-              )}
-            </button>
-          ))}
+        <div className="px-5 py-2.5 border-b border-slate-200 bg-white flex items-center space-x-2 overflow-x-auto">
+          <Filter className="h-4 w-4 text-slate-700 mr-1 flex-shrink-0 stroke-[2.2]" />
+          {filterTabs.map((tab) => {
+            const isTabActive =
+              currentFilter === tab.id ||
+              (tab.id === 'critical' && currentFilter === 'deterioration');
+
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setFilter(tab.id)}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-bold whitespace-nowrap transition-all duration-150 active:scale-[0.98] ${
+                  isTabActive
+                    ? tab.id === 'critical'
+                      ? 'bg-rose-700 text-white shadow-xs'
+                      : 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-white text-slate-800 hover:text-slate-950 hover:bg-slate-100 border border-slate-300'
+                }`}
+              >
+                {tab.icon && <tab.icon className="h-3.5 w-3.5" />}
+                <span>
+                  {tab.id === 'all'
+                    ? `All Cases (${patients.length})`
+                    : tab.id === 'critical'
+                    ? `Critical & Alerts (${criticalCount})`
+                    : tab.label}
+                </span>
+                {tab.alert && criticalCount > 0 && !isTabActive && (
+                  <span className="h-2 w-2 rounded-full bg-rose-600 ml-0.5"></span>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
 
       {/* Patient Queue Content */}
       {sortedPatients.length === 0 ? (
         <div className="py-16 px-4 text-center max-w-md mx-auto">
-          <div className="h-12 w-12 rounded-full bg-slate-850 border border-slate-750 flex items-center justify-center mx-auto mb-3 text-slate-400">
-            <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+          <div className="h-12 w-12 rounded-full bg-emerald-50 border border-emerald-300 flex items-center justify-center mx-auto mb-3 text-emerald-700 shadow-xs">
+            <CheckCircle2 className="h-6 w-6 stroke-[2.4]" />
           </div>
-          <h3 className="text-sm font-semibold text-slate-200">Triage Queue is Clear</h3>
-          <p className="text-xs text-slate-400 mt-1 mb-5 leading-relaxed">
-            No patients currently waiting in emergency intake. You can manually intake a patient or click <strong>+ Add 10 More Patients</strong> to simulate batch arrivals.
+          <h3 className="text-base font-bold text-slate-950">Triage Queue is Clear</h3>
+          <p className="text-xs text-slate-700 mt-1 mb-5 leading-relaxed font-medium">
+            No patients currently waiting in emergency intake. You can manually intake a patient or click <strong>+ Add 10 Patients</strong> to simulate batch arrivals.
           </p>
           <div className="flex items-center justify-center space-x-3">
             <button
               onClick={onOpenIntakeModal}
-              className="flex items-center space-x-1.5 px-4 py-2 rounded bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold shadow transition-all duration-150 active:scale-[0.98]"
+              className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-xs transition-all duration-150 active:scale-[0.98]"
             >
-              <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+              <Plus className="h-4 w-4 stroke-[2.8]" />
               <span>+ Add Patient (Manual Intake)</span>
             </button>
 
             <button
               onClick={onLoadSamplePatients}
               disabled={isLoadingSamples}
-              className="flex items-center space-x-1.5 px-4 py-2 rounded bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-medium border border-slate-700 transition-all duration-150 active:scale-[0.98] disabled:opacity-50"
+              className="px-4 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-900 text-xs font-bold border border-slate-300 transition-all duration-150 active:scale-[0.98] disabled:opacity-50 shadow-2xs"
             >
-              <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-              <span>{isLoadingSamples ? 'Adding...' : '+ Add 10 More Patients'}</span>
+              <span>{isLoadingSamples ? 'Adding...' : '+ Add 10 Patients'}</span>
             </button>
           </div>
         </div>
@@ -244,278 +228,215 @@ export default function QueueDashboard({
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-800 bg-slate-950 text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider">
-                <th className="py-2.5 px-3 text-center w-12">Rank #</th>
-                <th className="py-2.5 px-3">Patient & ID</th>
-                <th className="py-2.5 px-3">Age / Cohort</th>
-                <th className="py-2.5 px-3">Severity Score</th>
-                <th className="py-2.5 px-3">Chief Complaint & Presentation</th>
-                <th className="py-2.5 px-3">Calibrated Vitals</th>
-                <th className="py-2.5 px-3">Triage Priority (ESI)</th>
-                <th className="py-2.5 px-3">Wait & Est. Consultation</th>
-                <th className="py-2.5 px-3 text-right">Actions</th>
+              <tr className="border-b border-slate-300 bg-white text-xs font-bold text-slate-900 uppercase tracking-wider">
+                <th className="py-3 px-3.5 w-10 text-center">#</th>
+                <th className="py-3 px-3.5 min-w-[200px]">Patient</th>
+                <th className="py-3 px-3.5 min-w-[230px]">Clinical Concern</th>
+                <th className="py-3 px-3.5 min-w-[210px]">Calibrated Vitals</th>
+                <th className="py-3 px-3.5 min-w-[150px]">Triage Priority</th>
+                <th className="py-3 px-3.5 min-w-[100px]">Wait Time</th>
+                <th className="py-3 px-3.5 text-right w-28">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-xs">
+            <tbody className="divide-y divide-slate-200 text-xs">
               {sortedPatients.map((patient, index) => {
-                const esiInfo = getESIBadge(patient.currentESI);
-                const cohortTag = getAgeCohortTag(patient.age);
+                const esi = getESIInfo(patient.currentESI);
                 const triage = patient.triageResult || {};
                 const isOverridden = patient.isOverridden;
                 const hasDeterioration = patient.deteriorationAlert;
                 const wasEscalated = triage.wasEscalated;
                 const queueNum = index + 1;
-                const severityPill = getSeverityPill(patient.severityScore, patient.currentESI);
+                const score = Number(patient.severityScore) || (patient.currentESI === 1 ? 96 : patient.currentESI === 2 ? 82 : patient.currentESI === 3 ? 55 : 20);
+
+                // Check abnormal vitals for selective highlighting
+                const hr = patient.vitals?.hr;
+                const isHrAbnormal = hr && (hr > 110 || hr < 55);
+
+                const sbp = patient.vitals?.sbp;
+                const isSbpAbnormal = sbp && (sbp < 90 || sbp > 160);
+
+                const spo2 = patient.vitals?.spo2;
+                const isSpo2Abnormal = spo2 && spo2 <= 92;
+
+                const temp = patient.vitals?.temp;
+                const isTempAbnormal = temp && (temp >= 38.0 || temp <= 35.8);
 
                 return (
                   <tr
                     key={patient.id}
-                    className={`hover:bg-slate-850/40 transition-colors ${
-                      hasDeterioration ? 'bg-rose-950/20' : ''
-                    }`}
+                    className={`border-l-4 ${esi.railColor} hover:bg-slate-50 transition-colors bg-white`}
                   >
-                    {/* 0. Serial Number / Queue Position Badge */}
-                    <td className="py-2.5 px-3 text-center">
-                      <div
-                        className={`inline-flex items-center justify-center h-6 w-6 rounded-full font-mono text-[11px] font-bold ${
-                          patient.currentESI === 1
-                            ? 'bg-rose-600 text-white shadow-sm shadow-rose-600/50'
-                            : patient.currentESI === 2
-                            ? 'bg-orange-950 text-orange-300 border border-orange-700'
-                            : patient.currentESI === 3
-                            ? 'bg-amber-950 text-amber-300 border border-amber-700'
-                            : 'bg-slate-800 text-slate-300 border border-slate-700'
-                        }`}
-                      >
-                        {queueNum}
-                      </div>
+                    {/* 1. Neutral Ordinal Rank */}
+                    <td className="py-4 px-3.5 text-center">
+                      <span className="font-mono text-xs font-extrabold text-slate-800 tabular-nums">
+                        #{queueNum}
+                      </span>
                     </td>
 
-                    {/* 1. Patient & ABDM Status */}
-                    <td className="py-2.5 px-3">
+                    {/* 2. Patient Identity (One Coherent Piece) */}
+                    <td className="py-4 px-3.5">
                       <div>
-                        <div className="font-semibold text-slate-100 flex items-center space-x-1.5">
-                          <span>{patient.name}</span>
+                        <button
+                          onClick={() => onSelectPatient(patient)}
+                          className="font-extrabold text-slate-950 text-sm hover:text-sky-700 text-left transition-colors"
+                        >
+                          {patient.name}
+                        </button>
+                        <div className="text-xs text-slate-700 font-semibold mt-0.5 flex items-center space-x-1.5">
+                          <span>{patient.age}y · {patient.gender}</span>
+                          <span className="text-slate-400 font-bold">•</span>
+                          <span className="font-mono text-slate-800 font-bold text-xs">{patient.id}</span>
                           {patient.hasPriorHistory ? (
                             <span
-                              className="inline-flex items-center text-[9.5px] font-mono text-emerald-400 bg-emerald-950/80 px-1 py-0.5 rounded border border-emerald-800/60"
+                              className="inline-flex items-center text-[10px] font-mono text-emerald-950 bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-300 font-bold"
                               title={`ABDM Linked: ${patient.abhaId}`}
                             >
-                              <ShieldCheck className="h-3 w-3 mr-0.5" />
+                              <ShieldCheck className="h-3 w-3 mr-0.5 text-emerald-700" />
                               ABDM
                             </span>
                           ) : (
                             <span
-                              className="inline-flex items-center text-[9.5px] font-mono text-amber-400 bg-amber-950/80 px-1 py-0.5 rounded border border-amber-800/60"
+                              className="text-[10px] font-mono text-amber-950 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300 font-bold"
                               title="Zero-History: First-time arrival, no prior EHR record on file"
                             >
                               Zero-Hist
                             </span>
                           )}
                         </div>
-                        <div className="text-[10.5px] font-mono text-slate-400">
-                          {patient.id} ({patient.gender})
-                        </div>
                       </div>
                     </td>
 
-                    {/* 2. Age / Cohort */}
-                    <td className="py-2.5 px-3">
+                    {/* 3. Clinical Concern */}
+                    <td className="py-4 px-3.5 max-w-xs">
                       <div>
-                        <span className="font-semibold font-mono text-slate-200">{patient.age}y</span>
-                        <div className="mt-0.5">
-                          <span
-                            className={`text-[9.5px] font-medium px-1.5 py-0.5 rounded border ${cohortTag.color}`}
-                          >
-                            {cohortTag.label}
-                          </span>
+                        <div className="text-slate-950 text-xs font-bold leading-snug line-clamp-2">
+                          {patient.chiefComplaint}
                         </div>
-                      </div>
-                    </td>
-
-                    {/* 3. Severity Score Column */}
-                    <td className="py-2.5 px-3">
-                      <div className="font-mono">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] border ${severityPill.bg}`}
-                        >
-                          <Activity className="h-3 w-3 mr-1 opacity-70" />
-                          {severityPill.label}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* 4. Chief Complaint */}
-                    <td className="py-2.5 px-3 max-w-xs">
-                      <div className="text-slate-200 line-clamp-2 leading-relaxed text-[11.5px]">
-                        {patient.chiefComplaint}
-                      </div>
-                      {patient.painScore > 0 && (
-                        <div className="mt-0.5 text-[10.5px] text-slate-400 flex items-center space-x-1">
-                          <span>Pain:</span>
-                          <span className={`font-mono font-semibold ${patient.painScore >= 7 ? 'text-rose-400' : 'text-amber-400'}`}>
-                            {patient.painScore}/10
-                          </span>
-                        </div>
-                      )}
-                    </td>
-
-                    {/* 5. Calibrated Vitals Telemetry */}
-                    <td className="py-2.5 px-3">
-                      <div className="font-mono text-[10.5px] space-y-0.5">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-slate-400">HR:</span>
-                          <span
-                            className={`font-semibold ${
-                              patient.vitals?.hr > 110 || patient.vitals?.hr < 55
-                                ? 'text-rose-400'
-                                : 'text-slate-200'
-                            }`}
-                          >
-                            {patient.vitals?.hr || '--'}
-                          </span>
-                          <span className="text-slate-400">BP:</span>
-                          <span
-                            className={`font-semibold ${
-                              patient.vitals?.sbp < 90 || patient.vitals?.sbp > 160
-                                ? 'text-rose-400'
-                                : 'text-slate-200'
-                            }`}
-                          >
-                            {patient.vitals?.sbp}/{patient.vitals?.dbp || '--'}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-slate-400">SpO2:</span>
-                          <span
-                            className={`font-semibold ${
-                              patient.vitals?.spo2 <= 92 ? 'text-rose-400' : 'text-emerald-400'
-                            }`}
-                          >
-                            {patient.vitals?.spo2 || '--'}%
-                          </span>
-                          <span className="text-slate-400">Temp:</span>
-                          <span
-                            className={`font-semibold ${
-                              patient.vitals?.temp >= 38.0 || patient.vitals?.temp <= 35.8
-                                ? 'text-rose-400'
-                                : 'text-slate-200'
-                            }`}
-                          >
-                            {patient.vitals?.temp || '--'}°C
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* 6. Triage Priority (ESI) */}
-                    <td className="py-2.5 px-3">
-                      <div>
-                        <div
-                          className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border ${esiInfo.bg}`}
-                        >
-                          {esiInfo.label}
-                        </div>
-
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {wasEscalated && (
-                            <span
-                              className="inline-flex items-center text-[9.5px] font-medium px-1 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800/80 font-mono"
-                              title={triage.escalationReason}
-                            >
-                              <Zap className="h-2.5 w-2.5 mr-0.5" />
-                              Safety Escalated
-                            </span>
-                          )}
-
-                          {isOverridden && (
-                            <span
-                              className="inline-flex items-center text-[9.5px] font-medium px-1 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800/80 font-mono"
-                              title={`Overridden by ${patient.overrideDetails?.nurseId}: ${patient.overrideDetails?.reason}`}
-                            >
-                              <SlidersHorizontal className="h-2.5 w-2.5 mr-0.5" />
-                              Overridden
-                            </span>
-                          )}
-
-                          {triage.uncertaintyPercentage >= 35 && (
-                            <span
-                              className="inline-flex items-center text-[9.5px] font-mono font-medium px-1 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700"
-                              title={`Clinical Uncertainty: ${triage.uncertaintyPercentage}%`}
-                            >
-                              <HelpCircle className="h-2.5 w-2.5 mr-0.5 text-amber-400" />
-                              {triage.uncertaintyPercentage}% Uncert.
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* 7. Wait Time & Estimated Consultation (ETA) */}
-                    <td className="py-2.5 px-3">
-                      <div>
-                        <div className="flex items-center space-x-1 font-mono text-[11px]">
-                          <Clock className="h-3 w-3 text-slate-400" />
-                          <span
-                            className={`font-semibold ${
-                              hasDeterioration ? 'text-rose-400' : 'text-slate-200'
-                            }`}
-                          >
-                            Waited: {patient.waitTimeMinutes}m
-                          </span>
-                        </div>
-
-                        {/* Estimated Time to Doctor */}
-                        <div className="flex items-center space-x-1 font-mono text-[10.5px] mt-0.5 text-sky-400">
-                          <Hourglass className="h-3 w-3 text-sky-400" />
-                          <span>ETA: {patient.estimatedConsultationLabel || (patient.currentESI === 1 ? 'Immediate' : `~${index * 10}m`)}</span>
-                        </div>
-
-                        {hasDeterioration && (
-                          <div
-                            className="mt-1 inline-flex items-center text-[9.5px] font-semibold text-rose-300 bg-rose-950 px-1 py-0.5 rounded border border-rose-800 animate-pulse"
-                            title={patient.deteriorationReason}
-                          >
-                            <AlertTriangle className="h-2.5 w-2.5 mr-0.5 text-rose-400" />
-                            SLA Breached
+                        {patient.painScore > 0 && (
+                          <div className="text-xs text-slate-700 font-semibold mt-0.5">
+                            Pain: <strong className={`font-mono ${patient.painScore >= 7 ? 'text-rose-700 font-black' : 'text-slate-900 font-bold'}`}>{patient.painScore}/10</strong>
                           </div>
                         )}
                       </div>
                     </td>
 
-                    {/* 8. Clinical Actions */}
-                    <td className="py-2.5 px-3 text-right">
-                      <div className="flex items-center justify-end space-x-1">
+                    {/* 4. Physiological Vitals (Clean Scannable Inlined Group) */}
+                    <td className="py-4 px-3.5 font-mono text-xs tabular-nums">
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2.5">
+                          <span>
+                            <span className="text-slate-600 font-sans text-xs font-bold">SpO₂ </span>
+                            <span className={isSpo2Abnormal ? 'text-rose-700 font-black' : 'text-slate-950 font-bold'}>
+                              {spo2 || '--'}%
+                            </span>
+                          </span>
+                          <span className="text-slate-300 font-bold">•</span>
+                          <span>
+                            <span className="text-slate-600 font-sans text-xs font-bold">HR </span>
+                            <span className={isHrAbnormal ? 'text-rose-700 font-black' : 'text-slate-950 font-bold'}>
+                              {hr || '--'}
+                            </span>
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2.5 text-xs">
+                          <span>
+                            <span className="text-slate-600 font-sans text-xs font-bold">BP </span>
+                            <span className={isSbpAbnormal ? 'text-rose-700 font-black' : 'text-slate-950 font-bold'}>
+                              {sbp || '--'}/{patient.vitals?.dbp || '--'}
+                            </span>
+                          </span>
+                          <span className="text-slate-300 font-bold">•</span>
+                          <span>
+                            <span className="text-slate-600 font-sans text-xs font-bold">Temp </span>
+                            <span className={isTempAbnormal ? 'text-rose-700 font-black' : 'text-slate-950 font-bold'}>
+                              {temp || '--'}°C
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* 5. Triage Priority & De-emphasized Score */}
+                    <td className="py-4 px-3.5">
+                      <div>
+                        <div className="flex items-center space-x-1.5">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs border ${esi.badge}`}>
+                            <span className="mr-1">{esi.symbol}</span>
+                            <span>{esi.title} · {esi.sub}</span>
+                          </span>
+                        </div>
+
+                        {/* Quiet Risk Score & Flags underneath */}
+                        <div className="text-xs text-slate-700 font-mono mt-1 flex items-center space-x-1.5 font-medium">
+                          <span>Risk score: <strong className="text-slate-950 font-bold tabular-nums">{score}</strong></span>
+                          {wasEscalated && (
+                            <span className="text-amber-950 text-[10px] bg-amber-100 px-1 rounded border border-amber-300 font-bold">
+                              Escalated
+                            </span>
+                          )}
+                          {isOverridden && (
+                            <span className="text-purple-950 text-[10px] bg-purple-100 px-1 rounded border border-purple-300 font-bold">
+                              Overridden
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* 6. Wait Time & Estimated ETA */}
+                    <td className="py-4 px-3.5">
+                      <div className="text-xs">
+                        <div className="flex items-center space-x-1 text-slate-900 font-bold">
+                          <Clock className="h-3.5 w-3.5 text-slate-600 stroke-[2.2]" />
+                          <span className={`font-mono tabular-nums ${hasDeterioration ? 'text-rose-700 font-black' : 'text-slate-950 font-bold'}`}>
+                            {patient.waitTimeMinutes}m wait
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-700 font-mono mt-0.5 font-semibold">
+                          ETA {patient.estimatedConsultationLabel || (patient.currentESI === 1 ? 'Immediate' : `~${index * 10}m`)}
+                        </div>
+                        {hasDeterioration && (
+                          <div className="text-[11px] font-black text-rose-700 mt-0.5 flex items-center space-x-0.5">
+                            <AlertTriangle className="h-3 w-3 text-rose-700" />
+                            <span>SLA Breach</span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* 7. Actions: Primary Review Button + Quick Secondary Tools */}
+                    <td className="py-4 px-3.5 text-right">
+                      <div className="flex items-center justify-end space-x-1.5">
                         <button
                           onClick={() => onSelectPatient(patient)}
-                          className="p-1.5 rounded bg-slate-850 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-750 transition-all duration-150 active:scale-[0.98]"
-                          title="Deep Clinical View"
+                          className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-xs transition-all duration-150 active:scale-[0.98] inline-flex items-center justify-center space-x-1 whitespace-nowrap"
                         >
-                          <Eye className="h-3.5 w-3.5" />
+                          <span>Review</span>
+                          <ArrowRight className="h-3 w-3 stroke-[2.5]" />
                         </button>
 
                         <button
                           onClick={() => onOpenOverride(patient)}
-                          className="p-1.5 rounded bg-slate-850 hover:bg-purple-950/70 text-purple-300 hover:text-purple-200 border border-slate-750 hover:border-purple-800 transition-all duration-150 active:scale-[0.98]"
-                          title="Clinician Override"
+                          className="p-1.5 rounded-lg text-slate-700 hover:text-purple-900 hover:bg-purple-100 border border-slate-300 hover:border-purple-300 transition-colors shadow-2xs"
+                          title="Override Priority"
                         >
-                          <SlidersHorizontal className="h-3.5 w-3.5" />
+                          <SlidersHorizontal className="h-3.5 w-3.5 stroke-[2.2]" />
                         </button>
 
                         <button
                           onClick={() => onOpenVitalsRecheck(patient)}
-                          className="p-1.5 rounded bg-slate-850 hover:bg-emerald-950/70 text-emerald-300 hover:text-emerald-200 border border-slate-750 hover:border-emerald-800 transition-all duration-150 active:scale-[0.98]"
-                          title="Re-record Vitals"
+                          className="p-1.5 rounded-lg text-slate-700 hover:text-emerald-900 hover:bg-emerald-100 border border-slate-300 hover:border-emerald-300 transition-colors shadow-2xs"
+                          title="Re-check Vitals"
                         >
-                          <HeartPulse className="h-3.5 w-3.5" />
+                          <HeartPulse className="h-3.5 w-3.5 stroke-[2.2]" />
                         </button>
 
                         <button
                           onClick={() => onOpenSbar(patient)}
-                          className="p-1.5 rounded bg-slate-850 hover:bg-sky-950/70 text-sky-300 hover:text-sky-200 border border-slate-750 hover:border-sky-800 transition-all duration-150 active:scale-[0.98]"
+                          className="p-1.5 rounded-lg text-slate-700 hover:text-sky-900 hover:bg-sky-100 border border-slate-300 hover:border-sky-300 transition-colors shadow-2xs"
                           title="SBAR Handover Note"
                         >
-                          <FileSpreadsheet className="h-3.5 w-3.5" />
+                          <FileSpreadsheet className="h-3.5 w-3.5 stroke-[2.2]" />
                         </button>
                       </div>
                     </td>

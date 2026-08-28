@@ -39,42 +39,42 @@ export default function AuditLogViewer() {
     switch (eventType) {
       case 'CLINICIAN_OVERRIDE':
         return {
-          bg: 'bg-purple-950 text-purple-300 border-purple-800',
+          bg: 'bg-purple-50 text-purple-800 border-purple-200',
           label: 'Clinician Override'
         };
       case 'VITAL_REASSESSMENT_ALERT':
         return {
-          bg: 'bg-rose-950 text-rose-300 border-rose-800',
+          bg: 'bg-rose-50 text-rose-800 border-rose-200',
           label: 'Deterioration Alert'
         };
       case 'AI_TRIAGE_RECOMMENDED':
         return {
-          bg: 'bg-sky-950 text-sky-300 border-sky-800',
+          bg: 'bg-sky-50 text-sky-800 border-sky-200',
           label: 'AI Recommendation'
         };
       default:
         return {
-          bg: 'bg-slate-800 text-slate-300 border-slate-700',
+          bg: 'bg-slate-100 text-slate-700 border-slate-200',
           label: eventType
         };
     }
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-lg shadow-sm overflow-hidden">
+    <div className="bg-white border border-slate-300 rounded-xl shadow-xs overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-slate-800 flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-slate-950/60">
+      <div className="p-4 sm:p-5 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-white">
         <div>
           <div className="flex items-center space-x-2">
-            <ShieldCheck className="h-5 w-5 text-emerald-400" />
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+            <ShieldCheck className="h-5 w-5 text-emerald-700 stroke-[2.2]" />
+            <h2 className="text-sm font-black text-slate-950 uppercase tracking-wider">
               ABDM & DISHA Regulatory Audit Trail
             </h2>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-950 border border-emerald-300">
               TAMPER-EVIDENT
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-700 font-medium mt-0.5">
             Immutable log of all automated recommendations, clinician overrides, and electronic signatures.
           </p>
         </div>
@@ -84,7 +84,7 @@ export default function AuditLogViewer() {
           <select
             value={selectedEvent}
             onChange={(e) => setSelectedEvent(e.target.value)}
-            className="px-2.5 py-1.5 rounded-md bg-slate-900 border border-slate-800 text-xs text-slate-200 focus:border-sky-500 focus:outline-none"
+            className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-xs text-slate-950 focus:border-sky-600 focus:outline-none shadow-2xs font-bold"
           >
             <option value="ALL">All Audit Events</option>
             <option value="CLINICIAN_OVERRIDE">Clinician Overrides Only</option>
@@ -95,40 +95,40 @@ export default function AuditLogViewer() {
           <button
             onClick={fetchLogs}
             disabled={loading}
-            className="p-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+            className="p-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-950 border border-slate-300 transition-colors shadow-2xs"
             title="Refresh Audit Logs"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 stroke-[2.2] ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
 
       {/* Compliance Frameworks Pill */}
-      <div className="px-4 py-2 bg-slate-950 border-b border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+      <div className="px-5 py-2.5 bg-white border-b border-slate-200 flex items-center justify-between text-xs text-slate-800">
         <div className="flex items-center space-x-2">
-          <Lock className="h-3.5 w-3.5 text-sky-400" />
-          <span>Compliant Standards: <strong>ABDM Level-2</strong> • <strong>DISHA Act 2024</strong> • <strong>HIPAA 45 CFR § 164.312</strong> • <strong>GDPR Art. 22</strong></span>
+          <Lock className="h-3.5 w-3.5 text-sky-700" />
+          <span>Compliant Standards: <strong className="text-slate-950 font-bold">ABDM Level-2</strong> • <strong className="text-slate-950 font-bold">DISHA Act 2024</strong> • <strong className="text-slate-950 font-bold">HIPAA 45 CFR § 164.312</strong> • <strong className="text-slate-950 font-bold">GDPR Art. 22</strong></span>
         </div>
-        <span className="text-[10px] font-mono text-slate-400">Statutory Retention: 7 Years</span>
+        <span className="text-xs font-mono text-slate-700 font-bold">Statutory Retention: 7 Years</span>
       </div>
 
       {/* Audit Log Table */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse text-xs">
+        <table className="w-full text-left border-collapse text-xs bg-white">
           <thead>
-            <tr className="border-b border-slate-800 bg-slate-950/80 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-              <th className="py-3 px-3">Timestamp & Log ID</th>
-              <th className="py-3 px-3">Event Type</th>
-              <th className="py-3 px-3">Hashed Patient Token</th>
-              <th className="py-3 px-3">AI Recommendation</th>
-              <th className="py-3 px-3">Clinician Action & Signature</th>
-              <th className="py-3 px-3">Clinical Justification</th>
+            <tr className="border-b border-slate-300 bg-white text-xs font-bold text-slate-900 uppercase tracking-wider">
+              <th className="py-3.5 px-4">Timestamp & Log ID</th>
+              <th className="py-3.5 px-4">Event Type</th>
+              <th className="py-3.5 px-4">Hashed Patient Token</th>
+              <th className="py-3.5 px-4">AI Recommendation</th>
+              <th className="py-3.5 px-4">Clinician Action & Signature</th>
+              <th className="py-3.5 px-4">Clinical Justification</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800/60 font-mono">
+          <tbody className="divide-y divide-slate-200 font-mono">
             {logs.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-slate-400 font-sans">
+                <td colSpan={6} className="py-8 text-center text-slate-500 font-sans">
                   No audit events found for the selected filter.
                 </td>
               </tr>
@@ -138,11 +138,11 @@ export default function AuditLogViewer() {
                 const isOverride = log.clinicianAction?.isOverridden;
 
                 return (
-                  <tr key={log.id} className="hover:bg-slate-800/40 transition-colors">
+                  <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
                     {/* 1. Timestamp */}
-                    <td className="py-3 px-3 text-slate-300">
-                      <div>{new Date(log.timestamp).toLocaleTimeString()}</div>
-                      <div className="text-[10px] text-slate-400">{log.id}</div>
+                    <td className="py-3 px-3 text-slate-700">
+                      <div className="font-semibold tabular-nums">{new Date(log.timestamp).toLocaleTimeString()}</div>
+                      <div className="text-[10px] text-slate-400 font-mono">{log.id}</div>
                     </td>
 
                     {/* 2. Event Type */}
@@ -154,20 +154,20 @@ export default function AuditLogViewer() {
 
                     {/* 3. Patient Hash */}
                     <td className="py-3 px-3">
-                      <div className="text-sky-300 font-semibold">{log.patientHash}</div>
-                      <div className="text-[10px] text-slate-400 font-sans">{log.patientId}</div>
+                      <div className="text-sky-800 font-semibold">{log.patientHash}</div>
+                      <div className="text-[11px] text-slate-500 font-sans">{log.patientId}</div>
                     </td>
 
                     {/* 4. AI Recommendation */}
                     <td className="py-3 px-3 font-sans">
-                      <div className="text-slate-200 font-semibold">
+                      <div className="text-slate-900 font-semibold">
                         ESI Level {log.aiRecommendation?.esiLevel || '--'}
                       </div>
-                      <div className="text-[10px] text-slate-400">
+                      <div className="text-[11px] text-slate-500 font-mono">
                         Conf: {log.aiRecommendation?.confidenceScore}% • Uncert: {log.aiRecommendation?.uncertaintyPercentage}%
                       </div>
                       {log.aiRecommendation?.wasSafetyEscalated && (
-                        <div className="text-[10px] text-amber-400 font-semibold">
+                        <div className="text-[10.5px] text-amber-800 font-semibold">
                           [Safety Escalated]
                         </div>
                       )}
@@ -177,20 +177,20 @@ export default function AuditLogViewer() {
                     <td className="py-3 px-3 font-sans">
                       {isOverride ? (
                         <div>
-                          <div className="text-purple-300 font-semibold flex items-center space-x-1">
+                          <div className="text-purple-800 font-semibold flex items-center space-x-1">
                             <span>ESI {log.clinicianAction.originalESI} → ESI {log.clinicianAction.overriddenESI}</span>
                           </div>
-                          <div className="text-[10px] text-slate-400 font-mono">
+                          <div className="text-[11px] text-slate-600 font-mono">
                             {log.clinicianAction.clinicianId}
                           </div>
-                          <div className="text-[9px] text-emerald-400 font-mono mt-0.5">
+                          <div className="text-[10px] text-emerald-700 font-mono mt-0.5 font-semibold">
                             {log.clinicianAction.digitalSignature}
                           </div>
                         </div>
                       ) : (
                         <div>
-                          <div className="text-emerald-400 font-semibold">Accepted AI Triage</div>
-                          <div className="text-[10px] text-slate-400 font-mono">
+                          <div className="text-emerald-800 font-semibold">Accepted AI Triage</div>
+                          <div className="text-[11px] text-slate-600 font-mono">
                             {log.clinicianAction?.clinicianId}
                           </div>
                         </div>
@@ -198,7 +198,7 @@ export default function AuditLogViewer() {
                     </td>
 
                     {/* 6. Clinical Justification */}
-                    <td className="py-3 px-3 font-sans max-w-xs text-slate-300 text-[11px] leading-relaxed">
+                    <td className="py-3 px-3 font-sans max-w-xs text-slate-700 text-xs leading-relaxed">
                       {log.clinicianAction?.clinicalJustification || log.aiRecommendation?.severityLabel || 'Standard clinical baseline protocol'}
                     </td>
                   </tr>
