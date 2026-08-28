@@ -5,16 +5,9 @@
 [![Backend API Health](https://img.shields.io/badge/API%20Gateway-200%20OK-059669?style=for-the-badge&logo=fastapi&logoColor=white)](https://patient-triage-ai-4j1o.vercel.app/api/health)
 [![GitHub Source](https://img.shields.io/badge/GitHub-Source%20Code-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/MohitPant2803/PatientTriage.ai)
 
-<<<<<<< HEAD
 > 🌐 **Interactive Web Workstation:** [https://patient-triage-ai-blond.vercel.app/](https://patient-triage-ai-blond.vercel.app/)  
 > ⚡ **Live Backend API Endpoint:** [https://patient-triage-ai-4j1o.vercel.app/api/health](https://patient-triage-ai-4j1o.vercel.app/api/health)  
 > 📦 **GitHub Repository:** [https://github.com/MohitPant2803/PatientTriage.ai](https://github.com/MohitPant2803/PatientTriage.ai)
-=======
-> **Live Deployment Links:**
-> -  **Frontend UI:** [https://patient-triage-ai-blond.vercel.app/](https://patient-triage-ai-blond.vercel.app/)
-> -  **Backend API:** [https://patient-triage-ai-4j1o.vercel.app/api/health](https://patient-triage-ai-4j1o.vercel.app/api/health)
-> -  **GitHub Repository:** [https://github.com/MohitPant2803/PatientTriage.ai](https://github.com/MohitPant2803/PatientTriage.ai)
->>>>>>> cd63bd67c8c00f0ba4af8725afbe39b2c480854c
 
 ---
 
