@@ -127,7 +127,7 @@ async function analyzePatientTriage(patientData) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `
 You are an expert Emergency Medicine Physician Co-Pilot assisting a triage nurse under severe time pressure.
@@ -164,7 +164,13 @@ INSTRUCTIONS:
 }
 `;
 
-    const result = await model.generateContent(prompt);
+    // Timeout after 4.5 seconds to prevent serverless function timeouts
+    const generatePromise = model.generateContent(prompt);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Gemini API timeout')), 4500)
+    );
+
+    const result = await Promise.race([generatePromise, timeoutPromise]);
     const responseText = result.response.text();
 
     // Clean JSON formatting
@@ -204,7 +210,7 @@ INSTRUCTIONS:
       aiModel: 'Google Gemini 1.5 Flash + Deterministic Safety Layer'
     };
   } catch (err) {
-    console.error('Gemini API Error, falling back to clinical rule engine:', err.message);
+    console.warn('Gemini API Error or Timeout, using deterministic clinical rule engine:', err.message);
     return fallbackTriageReasoning(patientData);
   }
 }
