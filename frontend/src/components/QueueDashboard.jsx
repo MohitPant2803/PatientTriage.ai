@@ -96,8 +96,15 @@ export default function QueueDashboard({
     { id: 'overridden', label: 'Overridden' }
   ];
 
-  // Ensure strict descending order by severity score
-  const sortedPatients = [...patients].sort((a, b) => {
+  // Deduplicate and ensure strict descending order by severity score
+  const uniquePatientsMap = new Map();
+  patients.forEach((p) => {
+    if (p && p.id) {
+      uniquePatientsMap.set(p.id, p);
+    }
+  });
+
+  const sortedPatients = Array.from(uniquePatientsMap.values()).sort((a, b) => {
     const scoreA = Number(a.severityScore) || (a.currentESI === 1 ? 96 : a.currentESI === 2 ? 82 : a.currentESI === 3 ? 55 : 20);
     const scoreB = Number(b.severityScore) || (b.currentESI === 1 ? 96 : b.currentESI === 2 ? 82 : b.currentESI === 3 ? 55 : 20);
     if (scoreB !== scoreA) {

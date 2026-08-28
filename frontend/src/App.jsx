@@ -96,8 +96,11 @@ export default function App() {
 
   // Optimistic manual patient admission
   const handlePatientAdmitted = (newPatient) => {
-    if (newPatient) {
-      setPatients((prev) => [newPatient, ...prev]);
+    if (newPatient && newPatient.id) {
+      setPatients((prev) => {
+        const withoutNew = prev.filter((p) => p.id !== newPatient.id);
+        return [newPatient, ...withoutNew];
+      });
     }
     fetchData();
   };
