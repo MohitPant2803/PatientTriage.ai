@@ -7,9 +7,9 @@
 [![Design Alignment](https://img.shields.io/badge/Standards-ABDM%20M2%20%7C%20DISHA%202024-0891b2?style=for-the-badge)](https://patient-triage-ai-blond.vercel.app/)
 
 > **Live Deployment Links:**
-> - 🌐 **Frontend UI:** [https://patient-triage-ai-blond.vercel.app/](https://patient-triage-ai-blond.vercel.app/)
-> - ⚡ **Backend API:** [https://patient-triage-ai-4j1o.vercel.app/api/health](https://patient-triage-ai-4j1o.vercel.app/api/health)
-> - 📦 **GitHub Repository:** [https://github.com/MohitPant2803/PatientTriage.ai](https://github.com/MohitPant2803/PatientTriage.ai)
+> -  **Frontend UI:** [https://patient-triage-ai-blond.vercel.app/](https://patient-triage-ai-blond.vercel.app/)
+> -  **Backend API:** [https://patient-triage-ai-4j1o.vercel.app/api/health](https://patient-triage-ai-4j1o.vercel.app/api/health)
+> -  **GitHub Repository:** [https://github.com/MohitPant2803/PatientTriage.ai](https://github.com/MohitPant2803/PatientTriage.ai)
 
 ---
 
@@ -223,4 +223,4 @@ npm run dev
 * **Vidit Om** — Mechanical Engineering + AI/ML (B.Tech + M.Tech, 2027)
 * **Hrushabh Bodhe** — Mechanical Engineering + Financial Engineering (B.Tech + M.Tech, 2027)
 
-*Accenture Innovation Challenge 2026 — Round 2 CDSS Working Prototype.*
+*Accenture Innovation Challenge 2026 — Round 2 Working Prototype.*
