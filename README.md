@@ -1,15 +1,13 @@
 # PatientTriage.ai
 ### Intelligent Clinical Decision Support System (CDSS) for Emergency Triage
 
-[![Live Web Application](https://img.shields.io/badge/Live%20UI-PatientTriage.ai-0284c7?style=for-the-badge&logo=vercel&logoColor=white)](https://patient-triage-ai-blond.vercel.app/)
-[![Backend API Status](https://img.shields.io/badge/API%20Gateway-Active%20(v2.0)-059669?style=for-the-badge&logo=fastapi&logoColor=white)](https://patient-triage-ai-4j1o.vercel.app/api/health)
-[![Validation Agreement](https://img.shields.io/badge/Physician%20Agreement-94.0%25%20(%CE%BA%3D0.92)-4f46e5?style=for-the-badge)](https://patient-triage-ai-blond.vercel.app/)
-[![Design Alignment](https://img.shields.io/badge/Standards-ABDM%20M2%20%7C%20DISHA%202024-0891b2?style=for-the-badge)](https://patient-triage-ai-blond.vercel.app/)
+[![Live Web Application](https://img.shields.io/badge/Live%20Web%20App-patient--triage--ai.vercel.app-0284c7?style=for-the-badge&logo=vercel&logoColor=white)](https://patient-triage-ai-blond.vercel.app/)
+[![Backend API Health](https://img.shields.io/badge/API%20Gateway-200%20OK-059669?style=for-the-badge&logo=fastapi&logoColor=white)](https://patient-triage-ai-4j1o.vercel.app/api/health)
+[![GitHub Source](https://img.shields.io/badge/GitHub-Source%20Code-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/MohitPant2803/PatientTriage.ai)
 
-> **Live Deployment Links:**
-> - 🌐 **Frontend UI:** [https://patient-triage-ai-blond.vercel.app/](https://patient-triage-ai-blond.vercel.app/)
-> - ⚡ **Backend API:** [https://patient-triage-ai-4j1o.vercel.app/api/health](https://patient-triage-ai-4j1o.vercel.app/api/health)
-> - 📦 **GitHub Repository:** [https://github.com/MohitPant2803/PatientTriage.ai](https://github.com/MohitPant2803/PatientTriage.ai)
+> 🌐 **Interactive Web Workstation:** [https://patient-triage-ai-blond.vercel.app/](https://patient-triage-ai-blond.vercel.app/)  
+> ⚡ **Live Backend API Endpoint:** [https://patient-triage-ai-4j1o.vercel.app/api/health](https://patient-triage-ai-4j1o.vercel.app/api/health)  
+> 📦 **GitHub Repository:** [https://github.com/MohitPant2803/PatientTriage.ai](https://github.com/MohitPant2803/PatientTriage.ai)
 
 ---
 
