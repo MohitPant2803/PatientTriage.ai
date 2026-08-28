@@ -78,9 +78,10 @@ export default function App() {
     setIsLoadingSamples(true);
     try {
       const res = await api.seedSamplePatients(10);
-      if (res.success) {
-        await fetchData();
+      if (res.success && res.patients) {
+        setPatients(res.patients);
       }
+      fetchData();
     } catch (err) {
       console.error('Failed to load sample patients:', err);
     } finally {
@@ -88,11 +89,22 @@ export default function App() {
     }
   };
 
+  // Optimistic manual patient admission
+  const handlePatientAdmitted = (newPatient) => {
+    if (newPatient) {
+      setPatients((prev) => [newPatient, ...prev]);
+    }
+    fetchData();
+  };
+
   // Clear queue to empty
   const handleClearQueue = async () => {
     try {
-      await api.clearQueue();
-      await fetchData();
+      const res = await api.clearQueue();
+      if (res.success) {
+        setPatients([]);
+      }
+      fetchData();
     } catch (err) {
       console.error('Failed to clear queue:', err);
     }
@@ -177,7 +189,7 @@ export default function App() {
       <PatientIntakeModal
         isOpen={isIntakeOpen}
         onClose={() => setIsIntakeOpen(false)}
-        onPatientAdmitted={() => fetchData()}
+        onPatientAdmitted={handlePatientAdmitted}
         onLoadSamplePatients={handleLoadSamplePatients}
       />
 
