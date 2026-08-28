@@ -1,4 +1,4 @@
-﻿# PatientTriage.ai
+# PatientTriage.ai
 ### Intelligent Clinical Decision Support System (CDSS) for Emergency Triage
 
 [![Live Web Application](https://img.shields.io/badge/Live%20UI-PatientTriage.ai-0284c7?style=for-the-badge&logo=vercel&logoColor=white)](https://patient-triage-ai-blond.vercel.app/)
@@ -71,43 +71,50 @@ The system was evaluated against a **50-case benchmark dataset** (`backend/data/
 
 ---
 
-## 3. Triage Scoring Logic & Formulas
+## 3. How Triage & Severity Scoring Works
 
-### Step 1: Age-Calibrated Vital Risk Score ($S_{\text{physio}} \in [0, 10]$)
-Vitals are normalized against 5 clinical age cohorts (*Infant $<1\text{y}$, Toddler $1-5\text{y}$, School Age $6-12\text{y}$, Adult $13-64\text{y}$, Geriatric $65+\text{y}$*):
+The system calculates a clear **0 to 100 Severity Score** so doctors and nurses know exactly who needs attention first:
 
-$$S_{\text{physio}} = \sum_{v \in \text{Vitals}} w_v \cdot \mathbb{I}\big(v \notin \text{NormalCohortRange}(\text{Age})\big)$$
+### Step 1: Baseline Urgency by ESI Level
+The system first determines the Emergency Severity Index (ESI Level 1 to 5) using clinical rules and AI reasoning:
 
-*Parameter Weights ($w_v$)*:
-* $\text{SpO}_2$ derangement: $w = 3$
-* Heart rate derangement: $w = 2$
-* Blood pressure derangement: $w = 2$
-* Respiratory rate derangement: $w = 2$
-* Core temperature derangement: $w = 1$
+| ESI Level | Acuity Category | Base Score Range | Max Safe Wait Time | Example Symptoms |
+| :---: | :--- | :---: | :---: | :--- |
+| **Level 1** | **Resuscitation** (Immediate Life Threat) | **94 – 100** | **0 mins (Immediate)** | Cardiac arrest, unresponsive (GCS ≤ 8), severe anaphylaxis |
+| **Level 2** | **Emergent** (High Risk / Time-Sensitive) | **76 – 94** | **10 mins** | Heart attack (STEMI), acute stroke, severe chest pain |
+| **Level 3** | **Urgent** (Needs Multi-Resource Care) | **45 – 75** | **30 mins** | Acute appendicitis, severe abdominal pain, high fever |
+| **Level 4** | **Less Urgent** (Simple Care / 1 Resource) | **25 – 44** | **60 mins** | Ankle sprain, minor cut needing simple stitches |
+| **Level 5** | **Non-Urgent** (Routine / Prescription) | **5 – 24** | **120 mins** | Medication refill, mild rash, minor cold |
 
-### Step 2: Deterministic Safety Floor ($L_{\text{det}}$)
-Non-negotiable clinical rules set an unbreakable minimum urgency level:
-* $\text{GCS} \le 8$ or unresponsive $\implies \text{ESI 1}$
-* $\text{SpO}_2 \le 85\%$ or $\text{RR} \le 8\text{ bpm}$ $\implies \text{ESI 1}$
-* Active stroke (FAST positive) or atypical cardiac distress $\implies \text{ESI 2}$
-* Anaphylaxis or pediatric stridor $\implies \text{ESI 2}$
+---
 
-### Step 3: Asymmetric Uncertainty Index ($U \in [0, 100\%]$)
-Accounts for missing telemetry and zero-history arrivals:
+### Step 2: Age-Calibrated Vitals Check
+Vitals are automatically checked against normal ranges for the patient's age (Infant, Toddler, Child, Adult, or Senior):
+* **Oxygen (SpO₂ < 92%)**: Adds +3 risk points
+* **Abnormal Heart Rate (Severe tachycardia / bradycardia)**: Adds +2 risk points
+* **Abnormal Blood Pressure (Hypotension / severe hypertension)**: Adds +2 risk points
+* **Abnormal Respiratory Rate**: Adds +2 risk points
+* **High Fever or Hypothermia**: Adds +1 risk point
 
-$$U = \min\left(100,\, P_{\text{missing\_vitals}} + P_{\text{zero\_history}}(15\%) + P_{\text{ambiguity}}\right)$$
+---
 
-$$\text{If } U \ge 35\% \text{ and preliminary ESI} = 3 \implies \text{Escalate to ESI 2 (Fail-Safe)}$$
+### Step 3: Asymmetric Safety Net (Uncertainty Penalty)
+When a patient arrives with **missing vitals** or **no prior medical history** (Zero-History):
+* The system calculates an **Uncertainty Percentage (0% to 100%)**.
+* **Safety Rule**: If uncertainty is **35% or higher**, the system automatically promotes an uncertain Level 3 case to **Level 2** to ensure a doctor sees them immediately rather than risking an undetected life threat.
 
-### Step 4: Final 0–100 Clinical Severity Score ($S_{\text{severity}}$)
+---
 
-$$S_{\text{severity}} = \text{BaseFloor}(\text{ESI}) + \min(6, 1.5 \times S_{\text{physio}}) + (6 \times \mathbb{I}_{\text{DeteriorationAlert}}) + \min\left(6, \lfloor T_{\text{waited}} / 6 \rfloor\right)$$
+### Step 4: Live Waiting Room Deterioration Boost
+Triage updates continuously while the patient waits:
+* **Wait Time Points**: Adds +1 point for every 6 minutes waited in the emergency room.
+* **SLA Breached Alert**: If a patient exceeds their maximum safe wait time, an alarm triggers and adds +6 points to immediately move them up the queue.
+* **Vitals Recheck**: If updated vitals show worsening numbers, priority is recalculated instantly.
 
-* **ESI 1 (Resuscitation)**: Score $94 - 100$ | Safe Wait: $0\text{ min}$
-* **ESI 2 (Emergent)**: Score $76 - 94$ | Safe Wait: $10\text{ mins}$
-* **ESI 3 (Urgent)**: Score $45 - 75$ | Safe Wait: $30\text{ mins}$
-* **ESI 4 (Less Urgent)**: Score $25 - 44$ | Safe Wait: $60\text{ mins}$
-* **ESI 5 (Non-Urgent)**: Score $5 - 24$ | Safe Wait: $120\text{ mins}$
+---
+
+### Step 5: Queue Ranking Order
+Patients are sorted **highest score to lowest score** (Rank #1 = Most Critical). Within the same score tier, whoever has waited longer is seen first.
 
 ---
 
