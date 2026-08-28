@@ -53,7 +53,12 @@ export default function App() {
         if (currentFilter === 'deterioration') {
           fetched = fetched.filter((p) => p.deteriorationAlert);
         }
-        setPatients(fetched);
+        setPatients((prev) => {
+          // Check if data changed to avoid re-rendering DOM and losing scroll position
+          const prevKey = prev.map((p) => `${p.id}-${p.currentESI}-${p.waitTimeMinutes}-${p.isOverridden}-${p.deteriorationAlert}`).join('|');
+          const nextKey = fetched.map((p) => `${p.id}-${p.currentESI}-${p.waitTimeMinutes}-${p.isOverridden}-${p.deteriorationAlert}`).join('|');
+          return prevKey === nextKey ? prev : fetched;
+        });
       }
 
       if (statsRes.success) {
@@ -69,7 +74,7 @@ export default function App() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 8000);
+    const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
   }, [currentFilter, searchQuery]);
 
