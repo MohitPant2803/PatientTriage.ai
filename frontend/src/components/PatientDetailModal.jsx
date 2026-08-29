@@ -149,6 +149,56 @@ export default function PatientDetailModal({
             </div>
           )}
 
+          {/* Explicit Clinical Confidence & Uncertainty Assessment Card */}
+          <div className="p-4 rounded-xl bg-white border border-slate-300 shadow-2xs space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center space-x-2">
+                <ShieldCheck className="h-4 w-4 text-sky-700 stroke-[2.3]" />
+                <span className="font-bold text-slate-950 text-xs uppercase tracking-wider">
+                  AI Clinical Confidence & Uncertainty Metrics
+                </span>
+              </div>
+              <div className="flex items-center space-x-2 font-mono">
+                <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-950 border border-emerald-300 font-extrabold text-xs">
+                  Confidence: {triage.confidenceScore || 85}%
+                </span>
+                <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-950 border border-amber-300 font-extrabold text-xs">
+                  Uncertainty: {triage.uncertaintyPercentage || 15}%
+                </span>
+              </div>
+            </div>
+
+            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+              <div
+                className={`h-full ${
+                  (triage.confidenceScore || 85) >= 80 ? 'bg-emerald-600' : 'bg-amber-600'
+                }`}
+                style={{ width: `${triage.confidenceScore || 85}%` }}
+              ></div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-[11px] text-slate-800 font-medium">
+              <div className="p-2 rounded bg-slate-50 border border-slate-200">
+                <span className="text-slate-500 block">Missing Telemetry Penalty:</span>
+                <strong className="font-mono text-slate-950 font-bold">{triage.missingDataPenalty || 0}%</strong>
+              </div>
+              <div className="p-2 rounded bg-slate-50 border border-slate-200">
+                <span className="text-slate-500 block">Zero-History Penalty:</span>
+                <strong className="font-mono text-slate-950 font-bold">{triage.zeroHistoryPenalty || 0}%</strong>
+              </div>
+              <div className="p-2 rounded bg-slate-50 border border-slate-200">
+                <span className="text-slate-500 block">Asymmetric Safety Floor:</span>
+                <strong className="text-sky-950 font-bold">{triage.wasEscalated ? 'Active (Escalated)' : 'Compliant'}</strong>
+              </div>
+            </div>
+
+            {triage.wasEscalated && (
+              <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-300 text-xs text-amber-950 font-medium">
+                <strong>Safety Rule Triggered:</strong> {triage.escalationReason}
+              </div>
+            )}
+          </div>
+
           {/* Physiological Vitals Breakdown */}
           <div className="p-4 rounded-xl bg-white border border-slate-300 shadow-2xs">
             <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-3 flex items-center">

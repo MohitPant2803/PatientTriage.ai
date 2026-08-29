@@ -8,10 +8,11 @@ import ClinicianOverrideModal from './components/ClinicianOverrideModal';
 import VitalsRecheckModal from './components/VitalsRecheckModal';
 import DoctorHandoverModal from './components/DoctorHandoverModal';
 import AuditLogViewer from './components/AuditLogViewer';
+import SurgeSimulationPanel from './components/SurgeSimulationPanel';
 import { api } from './services/api';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('queue'); // 'queue', 'audit'
+  const [activeTab, setActiveTab] = useState('queue'); // 'queue', 'audit', 'simulation'
   const [patients, setPatients] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -167,6 +168,14 @@ export default function App() {
         )}
 
         {activeTab === 'audit' && <AuditLogViewer />}
+
+        {activeTab === 'simulation' && (
+          <SurgeSimulationPanel
+            isSurgeMode={isSurgeMode}
+            onToggleSurge={handleToggleSurge}
+            onQueueUpdated={fetchData}
+          />
+        )}
       </main>
 
       {/* Clinical Footer */}

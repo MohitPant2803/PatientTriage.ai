@@ -370,16 +370,33 @@ export default function QueueDashboard({
                           </span>
                         </div>
 
-                        {/* Quiet Risk Score & Flags underneath */}
-                        <div className="text-xs text-slate-700 font-mono mt-1 flex items-center space-x-1.5 font-medium">
-                          <span>Risk score: <strong className="text-slate-950 font-bold tabular-nums">{score}</strong></span>
+                        {/* Explicit Risk Score & Confidence Indicator underneath */}
+                        <div className="text-xs text-slate-700 font-mono mt-1 flex flex-wrap items-center gap-1.5 font-medium">
+                          <span>Score: <strong className="text-slate-950 font-bold tabular-nums">{score}</strong></span>
+                          <span className="text-slate-400 font-bold">•</span>
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                              (triage.confidenceScore || 85) >= 80
+                                ? 'bg-emerald-50 text-emerald-950 border-emerald-300'
+                                : 'bg-amber-50 text-amber-950 border-amber-300'
+                            }`}
+                            title={`AI Clinical Confidence: ${triage.confidenceScore || 85}% (Uncertainty: ${triage.uncertaintyPercentage || 15}%)`}
+                          >
+                            Conf: {triage.confidenceScore || 85}%
+                          </span>
                           {wasEscalated && (
-                            <span className="text-amber-950 text-[10px] bg-amber-100 px-1 rounded border border-amber-300 font-bold">
+                            <span
+                              className="text-amber-950 text-[10px] bg-amber-100 px-1 rounded border border-amber-300 font-bold"
+                              title="Asymmetric Safety Escalation: Priority boosted to protect patient under high diagnostic uncertainty"
+                            >
                               Escalated
                             </span>
                           )}
                           {isOverridden && (
-                            <span className="text-purple-950 text-[10px] bg-purple-100 px-1 rounded border border-purple-300 font-bold">
+                            <span
+                              className="text-purple-950 text-[10px] bg-purple-100 px-1 rounded border border-purple-300 font-bold"
+                              title="Clinician Overridden with ABDM/DISHA audit trail"
+                            >
                               Overridden
                             </span>
                           )}

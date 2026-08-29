@@ -3,6 +3,7 @@ import {
   Activity,
   Layers,
   ShieldCheck,
+  Zap,
   Clock,
   AlertTriangle,
   UserCheck
@@ -109,6 +110,18 @@ export default function Header({
             >
               <ShieldCheck className="h-4 w-4" />
               <span>ABDM / DISHA Audit Trail</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('simulation')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-150 active:scale-[0.98] ${
+                activeTab === 'simulation'
+                  ? 'bg-sky-700 text-white shadow-xs'
+                  : 'text-slate-800 bg-white hover:bg-slate-100 border border-slate-300'
+              }`}
+            >
+              <Zap className="h-4 w-4 stroke-[2.2]" />
+              <span>Surge & Capacity Simulation</span>
             </button>
           </nav>
         </div>
