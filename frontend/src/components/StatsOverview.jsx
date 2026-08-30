@@ -5,10 +5,11 @@ import {
   Clock,
   Bed,
   UserCheck,
-  ShieldCheck
+  ShieldCheck,
+  Flame
 } from 'lucide-react';
 
-export default function StatsOverview({ stats }) {
+export default function StatsOverview({ stats, onToggleSurge }) {
   const {
     totalPatients = 0,
     waiting = 0,
@@ -18,7 +19,8 @@ export default function StatsOverview({ stats }) {
     avgWaitTime = 0,
     alertCount = 0,
     bedOccupancyRate = 78,
-    nurseToPatientRatio = '1:3',
+    nurseToPatientRatio = '1:8',
+    isSurgeMode = false,
     esiBreakdown = {}
   } = stats || {};
 
@@ -27,6 +29,21 @@ export default function StatsOverview({ stats }) {
 
   return (
     <div className="bg-white border border-slate-300 rounded-xl shadow-xs overflow-hidden mb-5">
+      {/* 3x Surge Protocol Active Banner */}
+      {isSurgeMode && (
+        <div className="px-6 py-2.5 bg-amber-50 border-b border-amber-300 text-amber-950 text-xs font-bold flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center space-x-2">
+            <Flame className="h-4 w-4 text-amber-700 stroke-[2.4]" />
+            <span>
+              <strong>3x EMERGENCY SURGE PROTOCOL ACTIVE:</strong> Mass Inflow load balancing engaged — ESI 4 & 5 cases fast-tracked to Ambulatory Zone; Resuscitation Bays reserved for ESI 1 & 2.
+            </span>
+          </div>
+          <span className="font-mono text-[11px] px-2 py-0.5 bg-amber-200/80 rounded border border-amber-400 font-extrabold uppercase">
+            3x Volume Multiplier
+          </span>
+        </div>
+      )}
+
       {/* Primary Operational Row */}
       <div className="px-6 py-4 flex flex-wrap items-center justify-between gap-y-3 gap-x-8 bg-white">
         

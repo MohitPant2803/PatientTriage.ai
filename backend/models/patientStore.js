@@ -536,8 +536,14 @@ class PatientStore {
     this.surgeMultiplier = this.isSurgeMode ? 3 : 1;
 
     this.patients.forEach((p) => {
-      if (this.isSurgeMode && (p.currentESI === 4 || p.currentESI === 5)) {
-        p.status = 'FAST_TRACK_QUEUE';
+      if (this.isSurgeMode) {
+        if (p.currentESI === 4 || p.currentESI === 5) {
+          p.status = 'FAST_TRACK_QUEUE';
+        }
+      } else {
+        if (p.status === 'FAST_TRACK_QUEUE') {
+          p.status = 'WAITING_FOR_DOCTOR';
+        }
       }
     });
 

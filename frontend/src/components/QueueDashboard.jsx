@@ -306,6 +306,22 @@ export default function QueueDashboard({
                               Zero-Hist
                             </span>
                           )}
+                          {patient.status === 'FAST_TRACK_QUEUE' && (
+                            <span
+                              className="inline-flex items-center text-[10px] font-mono text-cyan-950 bg-cyan-100 px-1.5 py-0.5 rounded border border-cyan-300 font-bold"
+                              title="Surge Protocol: Diverted to Ambulatory Fast-Track Zone"
+                            >
+                              Fast-Track
+                            </span>
+                          )}
+                          {patient.status === 'IN_EXAM_BAY' && (
+                            <span
+                              className="inline-flex items-center text-[10px] font-mono text-rose-950 bg-rose-100 px-1.5 py-0.5 rounded border border-rose-300 font-bold"
+                              title="Active in Resuscitation / Exam Bay"
+                            >
+                              Resus Bay
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>
