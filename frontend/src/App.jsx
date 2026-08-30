@@ -54,10 +54,6 @@ export default function App() {
           fetched = fetched.filter((p) => p.deteriorationAlert);
         }
         setPatients((prev) => {
-          // Never wipe out active queue with a transient empty serverless cold-start response
-          if (fetched.length === 0 && prev.length > 0 && !params.search && currentFilter === 'all') {
-            return prev;
-          }
           const prevKey = prev.map((p) => `${p.id}-${p.currentESI}-${p.waitTimeMinutes}-${p.isOverridden}-${p.deteriorationAlert}`).join('|');
           const nextKey = fetched.map((p) => `${p.id}-${p.currentESI}-${p.waitTimeMinutes}-${p.isOverridden}-${p.deteriorationAlert}`).join('|');
           return prevKey === nextKey ? prev : fetched;

@@ -32,7 +32,6 @@ class PatientStore {
     this.surgeMultiplier = 1;
     this.activeDoctors = 3;
     this.avgConsultMinutes = 12;
-    this.initBenchmarkCohort(20);
   }
 
   initBenchmarkCohort(count = 20) {
@@ -286,10 +285,6 @@ class PatientStore {
   }
 
   getAllPatients(filter = {}) {
-    if (this.patients.length === 0 && !this._clearedManually) {
-      this.initBenchmarkCohort(20);
-    }
-
     let result = this.patients.map((p) => ({
       ...p,
       severityScore: this.calculateSeverityScore(p)
@@ -597,8 +592,8 @@ class PatientStore {
   }
 
   resetStore() {
-    this.clearQueue();
-    return { success: true, message: 'Queue cleared.' };
+    this.initBenchmarkCohort(20);
+    return { success: true, count: this.patients.length, message: 'Queue reset to initial 20 benchmark clinical patients.' };
   }
 }
 
