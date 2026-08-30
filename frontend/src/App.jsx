@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import StatsOverview from './components/StatsOverview';
 import QueueDashboard from './components/QueueDashboard';
@@ -13,10 +13,18 @@ import { api } from './services/api';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('queue'); // 'queue', 'audit', 'simulation'
-  const [patients, setPatients] = useState([]);
+  const [patients, setPatients] = useState(() => {
+    try {
+      const saved = localStorage.getItem('patient_triage_queue');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isLoadingSamples, setIsLoadingSamples] = useState(false);
+  const isClearingQueueRef = useRef(false);
 
   // Filters & Search
   const [currentFilter, setFilter] = useState('all');
@@ -31,6 +39,19 @@ export default function App() {
 
   // Surge State
   const [isSurgeMode, setIsSurgeMode] = useState(false);
+
+  // Persist queue in localStorage whenever patients change
+  useEffect(() => {
+    try {
+      if (patients && patients.length > 0) {
+        localStorage.setItem('patient_triage_queue', JSON.stringify(patients));
+      } else if (isClearingQueueRef.current) {
+        localStorage.removeItem('patient_triage_queue');
+      }
+    } catch (e) {
+      console.warn('localStorage sync notice:', e);
+    }
+  }, [patients]);
 
   // Fetch queue and stats
   const fetchData = async () => {
@@ -54,10 +75,34 @@ export default function App() {
         if (currentFilter === 'deterioration') {
           fetched = fetched.filter((p) => p.deteriorationAlert);
         }
+
         setPatients((prev) => {
+          if (isClearingQueueRef.current) {
+            return [];
+          }
+
+          // If the serverless lambda returned 0 while client has active patients,
+          // do NOT wipe unless explicitly cleared
+          if (fetched.length === 0 && prev.length > 0 && !searchQuery && currentFilter === 'all') {
+            return prev;
+          }
+
+          // Smart merge: merge server and client list by patient.id to prevent any dropouts
+          const map = new Map();
+          fetched.forEach((p) => {
+            if (p && p.id) map.set(p.id, p);
+          });
+          prev.forEach((p) => {
+            if (p && p.id && !map.has(p.id)) {
+              map.set(p.id, p);
+            }
+          });
+
+          const merged = Array.from(map.values());
           const prevKey = prev.map((p) => `${p.id}-${p.currentESI}-${p.waitTimeMinutes}-${p.isOverridden}-${p.deteriorationAlert}`).join('|');
-          const nextKey = fetched.map((p) => `${p.id}-${p.currentESI}-${p.waitTimeMinutes}-${p.isOverridden}-${p.deteriorationAlert}`).join('|');
-          return prevKey === nextKey ? prev : fetched;
+          const nextKey = merged.map((p) => `${p.id}-${p.currentESI}-${p.waitTimeMinutes}-${p.isOverridden}-${p.deteriorationAlert}`).join('|');
+
+          return prevKey === nextKey ? prev : merged;
         });
       }
 
@@ -84,7 +129,14 @@ export default function App() {
     try {
       const res = await api.seedSamplePatients(10);
       if (res.success && res.patients) {
-        setPatients(res.patients);
+        setPatients((prev) => {
+          const map = new Map();
+          res.patients.forEach((p) => map.set(p.id, p));
+          prev.forEach((p) => {
+            if (!map.has(p.id)) map.set(p.id, p);
+          });
+          return Array.from(map.values());
+        });
       }
       fetchData();
     } catch (err) {
@@ -99,7 +151,13 @@ export default function App() {
     if (newPatient && newPatient.id) {
       setPatients((prev) => {
         const withoutNew = prev.filter((p) => p.id !== newPatient.id);
-        return [newPatient, ...withoutNew];
+        const nextList = [newPatient, ...withoutNew];
+        try {
+          localStorage.setItem('patient_triage_queue', JSON.stringify(nextList));
+        } catch (e) {
+          console.warn('localStorage write error:', e);
+        }
+        return nextList;
       });
     }
     fetchData();
@@ -107,14 +165,17 @@ export default function App() {
 
   // Clear queue to empty
   const handleClearQueue = async () => {
+    isClearingQueueRef.current = true;
     try {
-      const res = await api.clearQueue();
-      if (res.success) {
-        setPatients([]);
-      }
-      fetchData();
+      localStorage.removeItem('patient_triage_queue');
+      setPatients([]);
+      await api.clearQueue();
     } catch (err) {
       console.error('Failed to clear queue:', err);
+    } finally {
+      setTimeout(() => {
+        isClearingQueueRef.current = false;
+      }, 2000);
     }
   };
 
