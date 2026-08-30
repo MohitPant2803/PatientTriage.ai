@@ -37,6 +37,7 @@ export default function App() {
     try {
       const params = {};
       if (searchQuery) params.search = searchQuery;
+      if (currentFilter === 'critical' || currentFilter === 'deterioration') params.criticalOnly = true;
       if (currentFilter === 'pediatric') params.cohort = 'pediatric';
       if (currentFilter === 'geriatric') params.cohort = 'geriatric';
       if (currentFilter === 'zero-history') params.zeroHistoryOnly = true;

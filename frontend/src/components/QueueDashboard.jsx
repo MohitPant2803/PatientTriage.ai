@@ -112,6 +112,28 @@ export default function QueueDashboard({
     return (b.waitTimeMinutes || 0) - (a.waitTimeMinutes || 0);
   });
 
+  const displayedPatients = sortedPatients.filter((p) => {
+    if (currentFilter === 'critical' || currentFilter === 'deterioration') {
+      return Number(p.currentESI) <= 2 || p.deteriorationAlert;
+    }
+    if (currentFilter === 'pediatric') {
+      return Number(p.age) <= 12;
+    }
+    if (currentFilter === 'geriatric') {
+      return Number(p.age) >= 65;
+    }
+    if (currentFilter === 'zero-history') {
+      return !p.hasPriorHistory;
+    }
+    if (currentFilter === 'overridden') {
+      return p.isOverridden;
+    }
+    if (currentFilter === 'high-uncertainty') {
+      return p.triageResult && p.triageResult.uncertaintyPercentage >= 35;
+    }
+    return true;
+  });
+
   const criticalCount = sortedPatients.filter(
     (p) => p.currentESI <= 2 || p.deteriorationAlert
   ).length;
@@ -243,7 +265,14 @@ export default function QueueDashboard({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-xs">
-              {sortedPatients.map((patient, index) => {
+              {displayedPatients.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="py-12 text-center text-slate-500 font-medium">
+                    No patients found matching the selected filter ({filterTabs.find((t) => t.id === currentFilter)?.label || currentFilter}).
+                  </td>
+                </tr>
+              ) : (
+                displayedPatients.map((patient, index) => {
                 const esi = getESIInfo(patient.currentESI);
                 const triage = patient.triageResult || {};
                 const isOverridden = patient.isOverridden;
@@ -479,7 +508,7 @@ export default function QueueDashboard({
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>

@@ -325,6 +325,10 @@ class PatientStore {
       );
     }
 
+    if (filter.criticalOnly === 'true' || filter.criticalOnly === true || filter.cohort === 'critical') {
+      result = result.filter((p) => Number(p.currentESI) <= 2 || p.deteriorationAlert);
+    }
+
     if (filter.zeroHistoryOnly === 'true' || filter.zeroHistoryOnly === true) {
       result = result.filter((p) => !p.hasPriorHistory);
     }
